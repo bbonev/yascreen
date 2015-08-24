@@ -1,0 +1,6 @@
+*.o
+CVS
+lib*.a
+yastest
+yastest.shared
+libyascreen.so*
