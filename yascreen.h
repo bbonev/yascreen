@@ -1,6 +1,6 @@
-// $Id: yascreen.h,v 1.35 2015/08/23 23:22:28 bbonev Exp $
+// $Id: yascreen.h,v 1.36 2015/08/24 18:46:19 bbonev Exp $
 //
-// Copyright © 2015 Boian Bonev (bbonev@ipacct.com)
+// Copyright © 2015 Boian Bonev (bbonev@ipacct.com) {{{
 //
 // This file is part of yascreen - yet another screen library.
 //
@@ -16,6 +16,7 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with yascreen.  If not, see <http://www.gnu.org/licenses/>.
+// }}}
 
 #ifndef ___YASCREEN_H___
 #define ___YASCREEN_H___

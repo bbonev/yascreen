@@ -1,6 +1,6 @@
-// $Id: yascreen.c,v 1.55 2015/08/23 23:22:42 bbonev Exp $
+// $Id: yascreen.c,v 1.57 2015/08/25 00:21:10 bbonev Exp $
 //
-// Copyright © 2015 Boian Bonev (bbonev@ipacct.com)
+// Copyright © 2015 Boian Bonev (bbonev@ipacct.com) {{{
 //
 // This file is part of yascreen - yet another screen library.
 //
@@ -16,6 +16,7 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with yascreen.  If not, see <http://www.gnu.org/licenses/>.
+// }}}
 
 // {{{ includes
 #define _GNU_SOURCE 1
@@ -34,8 +35,6 @@
 #include <sys/ioctl.h>
 
 #include <yascreen.h>
-// nuke the hack to avoid using typedef in yascreen.h
-#undef yascreen
 
 // }}}
 
@@ -141,7 +140,7 @@ struct _yascreen {
 	int *keys; // saved key array
 	unsigned char ansibuf[20]; // buffer for escape sequence parsing
 	unsigned char ansipos; // next byte will go in this pos
-	unsigned char utf[6]; // buffer for utf8 sequence parsing
+	unsigned char utf[3]; // buffer for utf8 sequence parsing; (must be increased to 5 if some day unicode permits 5 and 6 byte sequences; last byte is not put here, its never zero terminated
 	int64_t escts; // single ESC key timestamp
 	yas_k_state state; // input parser state
 	yas_t_state tstate; // telnet parser state
@@ -569,113 +568,411 @@ inline int yascreen_update(yascreen *s) { // {{{
 	return yascreen_update_range(s,0,s->sy);
 } // }}}
 
+static inline void yascreen_putcw(yascreen *s,uint32_t attr,const char *str,int width) { // {{{
+	int i;
+
+	if (!*str) // noop
+		return;
+	if (!str[1]) { // handle CR/LF
+		switch (*str) {
+			case '\n':
+				s->cursory++;
+			case '\r':
+				s->cursorx=0;
+				return;
+		}
+	}
+	if (s->cursory<0||s->cursory>=s->sy)
+		return;
+	if (width&&s->cursory>=0&&s->cursorx>=0&&s->cursorx<s->sx&&s->cursory<s->sy&&s->cursorx+width<=s->sx) {
+		// normal char
+		if (s->mem[s->cursorx+s->cursory*s->sx].style&YAS_STORAGE) {
+			s->mem[s->cursorx+s->cursory*s->sx].style&=~YAS_STORAGE;
+			free(s->mem[s->cursorx+s->cursory*s->sx].p);
+			s->mem[s->cursorx+s->cursory*s->sx].p=0;
+		}
+		if (strlen(str)<PSIZE) {
+			strncpy(s->mem[s->cursorx+s->cursory*s->sx].d,str,sizeof s->mem[s->cursorx+s->cursory*s->sx].d);
+			s->mem[s->cursorx+s->cursory*s->sx].style=attr;
+		} else {
+			char *ts=strdup(str);
+
+			if (!ts)
+				return; // nothing more to do
+
+			s->mem[s->cursorx+s->cursory*s->sx].p=ts;
+			s->mem[s->cursorx+s->cursory*s->sx].style=YAS_STORAGE|attr;
+		}
+		s->mem[s->cursory*s->sx].style|=YAS_TOUCHED;
+
+		s->cursorx++;
+		for (i=1;i<width;i++) {
+			if (s->cursorx<s->sx) {
+				if (s->mem[s->cursorx+s->cursory*s->sx].style&YAS_STORAGE) {
+					s->mem[s->cursorx+s->cursory*s->sx].style&=~YAS_STORAGE;
+					free(s->mem[s->cursorx+s->cursory*s->sx].p);
+					s->mem[s->cursorx+s->cursory*s->sx].p=0;
+				}
+				*s->mem[s->cursorx+s->cursory*s->sx].d=0;
+				s->mem[s->cursorx+s->cursory*s->sx].style=attr;
+			}
+			s->cursorx++;
+		}
+		return;
+	}
+	if (s->cursorx<0&&s->cursorx+width>=0) { // wide character spanning left bound
+		int x;
+
+		for (x=0;x<s->cursorx+width;x++) { // zap spanned chars
+			if (s->mem[x+s->cursory*s->sx].style&YAS_STORAGE) {
+				s->mem[x+s->cursory*s->sx].style&=~YAS_STORAGE;
+				free(s->mem[x+s->cursory*s->sx].p);
+				s->mem[x+s->cursory*s->sx].p=0;
+			}
+			strncpy(s->mem[x+s->cursory*s->sx].d,"<",sizeof s->mem[x+s->cursory*s->sx].d);
+			s->mem[x+s->cursory*s->sx].style=attr;
+			s->mem[s->cursory*s->sx].style|=YAS_TOUCHED;
+		}
+		s->cursorx+=width;
+		return;
+	}
+	if (s->cursorx<0||s->cursorx>=s->sx) { // noop for characters out of screen
+		s->cursorx+=width;
+		return;
+	}
+	if (!width&&s->cursorx==0) // nowhere to append - noop
+		return;
+	if (!width&&s->cursorx>0&&s->cursorx<=s->sx) { // combining char, add to previous
+		int clen;
+		char *ts;
+
+		s->cursorx--;
+
+		clen=strlen((s->mem[s->cursorx+s->cursory*s->sx].style&YAS_STORAGE)?s->mem[s->cursorx+s->cursory*s->sx].p:s->mem[s->cursorx+s->cursory*s->sx].d);
+		if (clen+strlen(str)<PSIZE) { // new fits, so current should fit too and don't have YAS_STORAGE
+			strncpy(s->mem[s->cursorx+s->cursory*s->sx].d+clen,str,sizeof s->mem[s->cursorx+s->cursory*s->sx].d-clen);
+			s->mem[s->cursorx+s->cursory*s->sx].style=attr; // as a side effect combining chars set attr for main char
+		} else {
+			ts=malloc(clen+strlen(str)+1);
+			if (!ts) {
+				s->cursorx++;
+				return; // nothing more we could do
+			}
+			strncpy(ts,(s->mem[s->cursorx+s->cursory*s->sx].style&YAS_STORAGE)?s->mem[s->cursorx+s->cursory*s->sx].p:s->mem[s->cursorx+s->cursory*s->sx].d,clen+strlen(str)+1);
+			strncpy(ts+clen,str,strlen(str)+1);
+			if (s->mem[s->cursorx+s->cursory*s->sx].style&YAS_STORAGE)
+				free(s->mem[s->cursorx+s->cursory*s->sx].p);
+			s->mem[s->cursorx+s->cursory*s->sx].p=ts;
+			s->mem[s->cursorx+s->cursory*s->sx].style=attr|YAS_STORAGE;
+		}
+		s->mem[s->cursory*s->sx].style|=YAS_TOUCHED;
+		s->cursorx++;
+	}
+	if (!width) // noop
+		return;
+	if (s->cursorx+width>s->sx) { // wide character spanning right bound
+		int x;
+
+		for (x=s->cursorx;x<s->sx;x++) { // zap spanned chars
+			if (s->mem[x+s->cursory*s->sx].style&YAS_STORAGE) {
+				s->mem[x+s->cursory*s->sx].style&=~YAS_STORAGE;
+				free(s->mem[x+s->cursory*s->sx].p);
+				s->mem[x+s->cursory*s->sx].p=0;
+			}
+			strncpy(s->mem[x+s->cursory*s->sx].d,">",sizeof s->mem[x+s->cursory*s->sx].d);
+			s->mem[x+s->cursory*s->sx].style=attr;
+			s->mem[s->cursory*s->sx].style|=YAS_TOUCHED;
+		}
+		s->cursorx+=width;
+		return;
+	}
+	return;
+} // }}}
+
 inline int yascreen_putsxy(yascreen *s,int x,int y,uint32_t attr,const char *str) { // {{{
-	wchar_t *ws,tws[2]={0};
-	int i,wl;
+	yas_u_state st=U_NORM;
+	char utf[5]; // 4 byte sequence + 1 for terminating 0
+	int i;
 
 	if (!s)
-		return EOF;
-	if (x>=s->sx)
-		return EOF;
-	if (y>=s->sy)
-		return EOF;
-	if (y<0)
 		return EOF;
 	if (attr&YAS_INTERNAL)
 		return EOF;
 
-	ws=(wchar_t *)calloc(sizeof *ws,strlen(str)+2);
-	if (!ws)
-		return EOF;
-	if (-1!=(wl=mbstowcs(ws,str,strlen(str)+1))) {
-		for (i=0;i<wl;i++) {
-			int wi=wcwidth(ws[i]);
-			int j,cl,bl,xtra=0;
-			char *ts;
+	s->cursorx=x; // set cursor position to whatever is requested
+	s->cursory=y;
 
-			if (!wi&&!i) {
-				free(ws);
-				return EOF;
-			}
-			tws[0]=ws[i];
-			bl=wcstombs(NULL,tws,0);
-			if (bl==-1) {
-				free(ws);
-				return EOF;
-			}
-			for (j=i+1;j<wl&&wcwidth(ws[j])==0;j++) {
-				tws[0]=ws[j];
-				cl=wcstombs(NULL,tws,0);
-				if (cl==-1) {
-					free(ws);
-					return EOF;
-				}
-				bl+=cl;
-				xtra++;
-			}
-			ts=(char *)calloc(sizeof *ts,bl+1);
-			if (!ts) {
-				free(ws);
-				return EOF;
-			}
-			for (j=i;j<wl&&(j==i||wcwidth(ws[j])==0);j++) {
-				tws[0]=ws[j];
-				wcstombs(ts+strlen(ts),tws,bl-strlen(ts));
-			}
-			if (strlen(ts)==1) {
-				if (*ts=='\n') { // handle line feed
-					x=0;
-					y++;
-					s->cursory=mymin(y,s->sy-1); // update cursor position
-					s->cursorx=mymin(x,s->sx-1);
-					if (y>=s->sy)
-						break;
-					continue; // no further processing is required for CR/LF
-				}
-				if (*ts=='\r') { // handle carriage return
-					x=0;
-					s->cursory=y; // update cursor position
-					s->cursorx=mymin(x,s->sx-1);
-					continue; // no further processing is required for CR/LF
-				}
-			}
-			if (x>=0&&x<s->sx) {
-				if (s->mem[x+y*s->sx].style&YAS_STORAGE) {
-					s->mem[x+y*s->sx].style&=~YAS_STORAGE;
-					free(s->mem[x+y*s->sx].p);
-					s->mem[x+y*s->sx].p=0;
-				}
-				if (strlen(ts)<PSIZE) {
-					strncpy(s->mem[x+y*s->sx].d,ts,sizeof s->mem[x+y*s->sx].d);
-					s->mem[x+y*s->sx].style=attr;
-				} else {
-					s->mem[x+y*s->sx].p=ts;
-					s->mem[x+y*s->sx].style=YAS_STORAGE|attr;
-				}
-				s->mem[y*s->sx].style|=YAS_TOUCHED;
-			}
-			x++;
-			s->cursory=y; // update cursor position
-			s->cursorx=mymin(x,s->sx-1);
-			for (j=0;j<wi-1&&x<s->sx;j++) {
-				if (x>=0&&x<s->sx) {
-					if (s->mem[x+y*s->sx].style&YAS_STORAGE)
-						free(s->mem[x+y*s->sx].p);
-					s->mem[x+y*s->sx].style=attr;
-					s->mem[x+y*s->sx].d[0]=0;
-				}
-				x++;
-				s->cursory=y; // update cursor position
-				s->cursorx=mymin(x,s->sx-1);
-			}
-			i+=xtra;
-		}
-		free(ws);
-		return 1;
-	} else {
-		free(ws);
-		return EOF;
+	if (x>=s->sx||y>=s->sy) {
+		s->cursorx=mymax(0,mymin(s->sx-1,s->cursorx)); // fixup position to be within screen
+		s->cursory=mymax(0,mymin(s->sy-1,s->cursory));
+		return 1; // somewhat successful print outside bounds
 	}
+
+	for (i=0;i<strlen(str);i++) {
+		switch (st) {
+			case U_NORM:
+				if (str[i]&0x80) {
+					if ((str[i]&0xc0)==0x80) // unexpected continuation byte
+						break;
+				startbyte:
+					if ((str[i]&0xe0)==0xc0) { // 2 byte seq
+						utf[0]=str[i];
+						st=U_L2C1;
+						break;
+					}
+					if ((str[i]&0xf0)==0xe0) { // 3 byte seq
+						utf[0]=str[i];
+						st=U_L3C1;
+						break;
+					}
+					if ((str[i]&0xf8)==0xf0) { // 4 byte seq
+						utf[0]=str[i];
+						st=U_L4C1;
+						break;
+					}
+					if ((str[i]&0xfc)==0xf8) { // 5 byte seq
+						//utf[0]=str[i];
+						st=U_L5C1;
+						break;
+					}
+					if ((str[i]&0xfe)==0xfc) { // 6 byte seq
+						//utf[0]=str[i];
+						st=U_L6C1;
+						break;
+					}
+					// pass 0xff and 0xfe - violates rfc
+					utf[0]=str[i];
+					utf[1]=0;
+					yascreen_putcw(s,attr,utf,1); // assume width 1
+					st=U_NORM; // in case we come from unexpected start byte
+				} else {
+					utf[0]=str[i];
+					utf[1]=0;
+					yascreen_putcw(s,attr,utf,1); // assume width 1
+				}
+				break;
+			case U_L2C1:
+				if ((str[i]&0xc0)==0x80) { // continuation byte
+					wchar_t wc;
+
+					utf[1]=str[i];
+					utf[2]=0;
+
+					wc=((utf[0]&0x1f)<<6)|(utf[1]&0x3f);
+					yascreen_putcw(s,attr,utf,wcwidth(wc));
+					st=U_NORM;
+					break;
+				}
+				if (str[i]&0x80) // start another sequence
+					goto startbyte;
+				st=U_NORM; // normal byte kills current sequence and is processed
+				utf[0]=str[i];
+				utf[1]=0;
+				yascreen_putcw(s,attr,utf,1); // assume width 1
+				break;
+			case U_L3C1:
+				if ((str[i]&0xc0)==0x80) { // continuation byte
+					utf[1]=str[i];
+					st=U_L3C2;
+					break;
+				}
+				if (str[i]&0x80) // start another sequence
+					goto startbyte;
+				st=U_NORM; // normal byte kills current sequence and is processed
+				utf[0]=str[i];
+				utf[1]=0;
+				yascreen_putcw(s,attr,utf,1); // assume width 1
+				break;
+			case U_L3C2:
+				if ((str[i]&0xc0)==0x80) { // continuation byte
+					wchar_t wc;
+
+					utf[2]=str[i];
+					utf[3]=0;
+
+					wc=((utf[0]&0x0f)<<12)|((utf[1]&0x3f)<<6)|(utf[2]&0x3f);
+					yascreen_putcw(s,attr,utf,wcwidth(wc));
+					st=U_NORM;
+					break;
+				}
+				if (str[i]&0x80) // start another sequence
+					goto startbyte;
+				st=U_NORM; // normal byte kills current sequence and is processed
+				utf[0]=str[i];
+				utf[1]=0;
+				yascreen_putcw(s,attr,utf,1); // assume width 1
+				break;
+			case U_L4C1:
+				if ((str[i]&0xc0)==0x80) { // continuation byte
+					utf[1]=str[i];
+					st=U_L4C2;
+					break;
+				}
+				if (str[i]&0x80) // start another sequence
+					goto startbyte;
+				st=U_NORM; // normal byte kills current sequence and is processed
+				utf[0]=str[i];
+				utf[1]=0;
+				yascreen_putcw(s,attr,utf,1); // assume width 1
+				break;
+			case U_L4C2:
+				if ((str[i]&0xc0)==0x80) { // continuation byte
+					utf[2]=str[i];
+					st=U_L4C3;
+					break;
+				}
+				if (str[i]&0x80) // start another sequence
+					goto startbyte;
+				st=U_NORM; // normal byte kills current sequence and is processed
+				utf[0]=str[i];
+				utf[1]=0;
+				yascreen_putcw(s,attr,utf,1); // assume width 1
+				break;
+			case U_L4C3:
+				if ((str[i]&0xc0)==0x80) { // continuation byte
+					wchar_t wc;
+
+					utf[3]=str[i];
+					utf[4]=0;
+
+					wc=((utf[0]&0x07)<<18)|((utf[1]&0x3f)<<12)|((utf[2]&0x3f)<<6)|(utf[3]&0x3f);
+					yascreen_putcw(s,attr,utf,wcwidth(wc));
+					st=U_NORM;
+					break;
+				}
+				if (str[i]&0x80) // start another sequence
+					goto startbyte;
+				st=U_NORM; // normal byte kills current sequence and is processed
+				utf[0]=str[i];
+				utf[1]=0;
+				yascreen_putcw(s,attr,utf,1); // assume width 1
+				break;
+			case U_L5C1:
+				if ((str[i]&0xc0)==0x80) { // continuation byte
+					//utf[1]=str[i];
+					st=U_L5C2;
+					break;
+				}
+				if (str[i]&0x80) // start another sequence
+					goto startbyte;
+				st=U_NORM; // normal byte kills current sequence and is processed
+				utf[0]=str[i];
+				utf[1]=0;
+				yascreen_putcw(s,attr,utf,1); // assume width 1
+				break;
+			case U_L5C2:
+				if ((str[i]&0xc0)==0x80) { // continuation byte
+					//utf[2]=str[i];
+					st=U_L5C3;
+					break;
+				}
+				if (str[i]&0x80) // start another sequence
+					goto startbyte;
+				st=U_NORM; // normal byte kills current sequence and is processed
+				utf[0]=str[i];
+				utf[1]=0;
+				yascreen_putcw(s,attr,utf,1); // assume width 1
+				break;
+			case U_L5C3:
+				if ((str[i]&0xc0)==0x80) { // continuation byte
+					//utf[3]=str[i];
+					st=U_L5C4;
+					break;
+				}
+				if (str[i]&0x80) // start another sequence
+					goto startbyte;
+				st=U_NORM; // normal byte kills current sequence and is processed
+				utf[0]=str[i];
+				utf[1]=0;
+				yascreen_putcw(s,attr,utf,1); // assume width 1
+				break;
+			case U_L5C4:
+				if ((str[i]&0xc0)==0x80) { // continuation byte
+					//utf[4]=str[i];
+					//utf[5]=0;
+					// ignore char by rfc
+					st=U_NORM;
+					break;
+				}
+				if (str[i]&0x80) // start another sequence
+					goto startbyte;
+				st=U_NORM; // normal byte kills current sequence and is processed
+				utf[0]=str[i];
+				utf[1]=0;
+				yascreen_putcw(s,attr,utf,1); // assume width 1
+				break;
+			case U_L6C1:
+				if ((str[i]&0xc0)==0x80) { // continuation byte
+					//utf[1]=str[i];
+					st=U_L6C2;
+					break;
+				}
+				if (str[i]&0x80) // start another sequence
+					goto startbyte;
+				st=U_NORM; // normal byte kills current sequence and is processed
+				utf[0]=str[i];
+				utf[1]=0;
+				yascreen_putcw(s,attr,utf,1); // assume width 1
+				break;
+			case U_L6C2:
+				if ((str[i]&0xc0)==0x80) { // continuation byte
+					//utf[2]=str[i];
+					st=U_L6C3;
+					break;
+				}
+				if (str[i]&0x80) // start another sequence
+					goto startbyte;
+				st=U_NORM; // normal byte kills current sequence and is processed
+				utf[0]=str[i];
+				utf[1]=0;
+				yascreen_putcw(s,attr,utf,1); // assume width 1
+				break;
+			case U_L6C3:
+				if ((str[i]&0xc0)==0x80) { // continuation byte
+					//utf[3]=str[i];
+					st=U_L6C4;
+					break;
+				}
+				if (str[i]&0x80) // start another sequence
+					goto startbyte;
+				st=U_NORM; // normal byte kills current sequence and is processed
+				utf[0]=str[i];
+				utf[1]=0;
+				yascreen_putcw(s,attr,utf,1); // assume width 1
+				break;
+			case U_L6C4:
+				if ((str[i]&0xc0)==0x80) { // continuation byte
+					//utf[4]=str[i];
+					st=U_L6C5;
+					break;
+				}
+				if (str[i]&0x80) // start another sequence
+					goto startbyte;
+				st=U_NORM; // normal byte kills current sequence and is processed
+				utf[0]=str[i];
+				utf[1]=0;
+				yascreen_putcw(s,attr,utf,1); // assume width 1
+				break;
+			case U_L6C5:
+				if ((str[i]&0xc0)==0x80) { // continuation byte
+					//utf[5]=str[i];
+					//utf[6]=0;
+					// ignore char by rfc
+					st=U_NORM;
+					break;
+				}
+				if (str[i]&0x80) // start another sequence
+					goto startbyte;
+				st=U_NORM; // normal byte kills current sequence and is processed
+				utf[0]=str[i];
+				utf[1]=0;
+				yascreen_putcw(s,attr,utf,1); // assume width 1
+				break;
+		}
+	}
+	s->cursorx=mymax(0,mymin(s->sx-1,s->cursorx)); // fixup position to be within screen
+	s->cursory=mymax(0,mymin(s->sy-1,s->cursory));
+	return 1;
 } // }}}
 
 inline int yascreen_putsxyu(yascreen *s,int x,int y,uint32_t attr,const char *str) { // {{{
@@ -1206,7 +1503,7 @@ inline void yascreen_feed(yascreen *s,unsigned char c) { // {{{
 						break;
 					case U_L5C1:
 						if ((c&0xc0)==0x80) { // continuation byte
-							s->utf[1]=c;
+							//s->utf[1]=c;
 							s->ustate=U_L5C2;
 							break;
 						}
@@ -1217,7 +1514,7 @@ inline void yascreen_feed(yascreen *s,unsigned char c) { // {{{
 						break;
 					case U_L5C2:
 						if ((c&0xc0)==0x80) { // continuation byte
-							s->utf[2]=c;
+							//s->utf[2]=c;
 							s->ustate=U_L5C3;
 							break;
 						}
@@ -1228,7 +1525,7 @@ inline void yascreen_feed(yascreen *s,unsigned char c) { // {{{
 						break;
 					case U_L5C3:
 						if ((c&0xc0)==0x80) { // continuation byte
-							s->utf[3]=c;
+							//s->utf[3]=c;
 							s->ustate=U_L5C4;
 							break;
 						}
@@ -1254,7 +1551,7 @@ inline void yascreen_feed(yascreen *s,unsigned char c) { // {{{
 						break;
 					case U_L6C1:
 						if ((c&0xc0)==0x80) { // continuation byte
-							s->utf[1]=c;
+							//s->utf[1]=c;
 							s->ustate=U_L6C2;
 							break;
 						}
@@ -1265,7 +1562,7 @@ inline void yascreen_feed(yascreen *s,unsigned char c) { // {{{
 						break;
 					case U_L6C2:
 						if ((c&0xc0)==0x80) { // continuation byte
-							s->utf[2]=c;
+							//s->utf[2]=c;
 							s->ustate=U_L6C3;
 							break;
 						}
@@ -1276,7 +1573,7 @@ inline void yascreen_feed(yascreen *s,unsigned char c) { // {{{
 						break;
 					case U_L6C3:
 						if ((c&0xc0)==0x80) { // continuation byte
-							s->utf[3]=c;
+							//s->utf[3]=c;
 							s->ustate=U_L6C4;
 							break;
 						}
@@ -1287,7 +1584,7 @@ inline void yascreen_feed(yascreen *s,unsigned char c) { // {{{
 						break;
 					case U_L6C4:
 						if ((c&0xc0)==0x80) { // continuation byte
-							s->utf[3]=c;
+							//s->utf[3]=c;
 							s->ustate=U_L6C5;
 							break;
 						}
