@@ -1,4 +1,4 @@
-// $Id: yascreen.c,v 1.57 2015/08/25 00:21:10 bbonev Exp $
+// $Id: yascreen.c,v 1.59 2015/08/25 00:55:20 bbonev Exp $
 //
 // Copyright © 2015 Boian Bonev (bbonev@ipacct.com) {{{
 //
@@ -168,9 +168,7 @@ static inline int64_t mytime() { // {{{
 } // }}}
 
 static inline ssize_t out(yascreen *s,const void *buf,size_t len) { // {{{
-	fwrite(buf,len,1,stdout);
-	fflush(stdout);
-	return len;
+	return write(STDOUT_FILENO,buf,len);
 } // }}}
 
 static inline void outs(yascreen *s,const char *str) { // {{{
@@ -262,18 +260,18 @@ inline yascreen *yascreen_init(int sx,int sy) { // {{{
 	s->cursor=1;
 	s->cursorx=0;
 	s->cursory=0;
-	if (!s->outcb&&isatty(fileno(stdout))) { // output is a terminal
+	if (!s->outcb&&isatty(STDOUT_FILENO)) { // output is a terminal
 		s->tsstack=(struct termios *)calloc(1,sizeof(struct termios));
 		if (!s->tsstack) {
 			free(s);
 			return NULL;
 		}
 		s->tssize=1;
-		tcgetattr(fileno(stdout),s->tsstack);
+		tcgetattr(STDOUT_FILENO,s->tsstack);
 		if (!sx||!sy) {
 			struct winsize ws={0};
 
-			if (!ioctl(fileno(stdout),TIOCGWINSZ,&ws)) {
+			if (!ioctl(STDOUT_FILENO,TIOCGWINSZ,&ws)) {
 				if (!sx)
 					sx=ws.ws_col;
 				if (!sy)
@@ -362,10 +360,10 @@ inline int yascreen_resize(yascreen *s,int sx,int sy) { // {{{
 		return -1;
 
 	if (!sx||!sy)
-		if (!s->outcb&&isatty(fileno(stdout))) {
+		if (!s->outcb&&isatty(STDOUT_FILENO)) {
 			struct winsize ws={0};
 
-			if (!ioctl(fileno(stdout),TIOCGWINSZ,&ws)) {
+			if (!ioctl(STDOUT_FILENO,TIOCGWINSZ,&ws)) {
 				if (!sx)
 					sx=ws.ws_col;
 				if (!sy)
@@ -1156,7 +1154,7 @@ inline void yascreen_term_save(yascreen *s) { // {{{
 		return;
 	if (s->outcb)
 		return;
-	if (!isatty(fileno(stdout)))
+	if (!isatty(STDOUT_FILENO))
 		return;
 
 	if (!s->tssize) { // no saved state, allocate new one
@@ -1166,7 +1164,7 @@ inline void yascreen_term_save(yascreen *s) { // {{{
 		s->tssize=1;
 	}
 
-	tcgetattr(fileno(stdout),s->tsstack);
+	tcgetattr(STDOUT_FILENO,s->tsstack);
 } // }}}
 
 inline void yascreen_term_restore(yascreen *s) { // {{{
@@ -1174,13 +1172,13 @@ inline void yascreen_term_restore(yascreen *s) { // {{{
 		return;
 	if (s->outcb)
 		return;
-	if (!isatty(fileno(stdout)))
+	if (!isatty(STDOUT_FILENO))
 		return;
 
 	if (!s->tssize) // no saved state
 		return;
 
-	tcsetattr(fileno(stdout),TCSANOW,s->tsstack);
+	tcsetattr(STDOUT_FILENO,TCSANOW,s->tsstack);
 } // }}}
 
 inline void yascreen_term_push(yascreen *s) { // {{{
@@ -1190,7 +1188,7 @@ inline void yascreen_term_push(yascreen *s) { // {{{
 		return;
 	if (s->outcb)
 		return;
-	if (!isatty(fileno(stdout)))
+	if (!isatty(STDOUT_FILENO))
 		return;
 
 	t=(struct termios *)realloc(s->tsstack,(s->tssize+1)*sizeof(struct termios));
@@ -1199,7 +1197,7 @@ inline void yascreen_term_push(yascreen *s) { // {{{
 	s->tsstack=t;
 	s->tssize++;
 	memmove(s->tsstack+1,s->tsstack,(s->tssize-1)*sizeof(struct termios));
-	tcgetattr(fileno(stdout),s->tsstack);
+	tcgetattr(STDOUT_FILENO,s->tsstack);
 } // }}}
 
 inline void yascreen_term_pop(yascreen *s) { // {{{
@@ -1207,13 +1205,13 @@ inline void yascreen_term_pop(yascreen *s) { // {{{
 		return;
 	if (s->outcb)
 		return;
-	if (!isatty(fileno(stdout)))
+	if (!isatty(STDOUT_FILENO))
 		return;
 
 	if (!s->tssize)
 		return;
 
-	tcsetattr(fileno(stdout),TCSANOW,s->tsstack);
+	tcsetattr(STDOUT_FILENO,TCSANOW,s->tsstack);
 	if (s->tssize>1) {
 		memmove(s->tsstack,s->tsstack+1,(s->tssize-1)*sizeof(struct termios));
 		s->tssize--;
@@ -1227,11 +1225,11 @@ inline void yascreen_term_set(yascreen *s,int mode) { // {{{
 		return;
 	if (s->outcb)
 		return;
-	if (!isatty(fileno(stdout)))
+	if (!isatty(STDOUT_FILENO))
 		return;
 
 	// get the terminal state
-	tcgetattr(fileno(stdout),&t);
+	tcgetattr(STDOUT_FILENO,&t);
 
 	// turn off canonical mode
 	if (mode&YAS_NOBUFF)
@@ -1251,7 +1249,7 @@ inline void yascreen_term_set(yascreen *s,int mode) { // {{{
 	// no timeout
 	t.c_cc[VTIME]=0;
 
-	tcsetattr(fileno(stdout),TCSANOW,&t);
+	tcsetattr(STDOUT_FILENO,TCSANOW,&t);
 } // }}}
 
 inline int yascreen_sx(yascreen *s) { // {{{
@@ -1847,12 +1845,14 @@ inline int yascreen_getch_to(yascreen *s,int timeout) { // {{{
 		}
 		if (s->outcb)
 			return -1;
+		if (STDOUT_FILENO<0)
+			return -1;
 		FD_ZERO(&r);
-		FD_SET(fileno(stdout),&r);
-		if (-1!=select(fileno(stdout)+1,&r,NULL,NULL,pto)) {
+		FD_SET(STDOUT_FILENO,&r);
+		if (-1!=select(STDOUT_FILENO+1,&r,NULL,NULL,pto)) {
 			unsigned char c; // important to be unsigned, so codes>127 do not expand as negative int values
 
-			if (FD_ISSET(fileno(stdout),&r)&&sizeof c==read(fileno(stdout),&c,sizeof c)) {
+			if (FD_ISSET(STDOUT_FILENO,&r)&&sizeof c==read(STDOUT_FILENO,&c,sizeof c)) {
 				yascreen_feed(s,c);
 				continue; // check if feed has yielded a key
 			}
