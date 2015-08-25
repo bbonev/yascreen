@@ -3,7 +3,7 @@ Yet Another Screen Library (curses replacement for daemons and embedded apps)
 
 Main features
 - small footprint
-- does not have external dependancies
+- does not have external dependencies
 - allows both internal and external event loop
 - allows stdin/stdout or external input/output (can work over socket)
 - supports basic set of telnet sequences, so it is suitable for built-in terminal interfaces for daemons
