@@ -1,4 +1,4 @@
-// $Id: yascreen.c,v 1.59 2015/08/25 00:55:20 bbonev Exp $
+// $Id: yascreen.c,v 1.60 2015/09/02 00:58:54 bbonev Exp $
 //
 // Copyright © 2015 Boian Bonev (bbonev@ipacct.com) {{{
 //
@@ -337,16 +337,25 @@ inline void yascreen_init_telnet(yascreen *s) { // {{{
 	if (!s)
 		return;
 
-	if (s->istelnet)
+	if (s->istelnet) {
 		outs(s,
-			"\xff\xfb\x03"
-			"\xff\xfb\x01"
-			"\xff\xfd\x03"
-			"\xff\xfd\x01"
-			"\xff\xfb\x1f"
-			"\xff\xfd\x1f"
+			"\xff\xfb\x03" // will(251) suppress go ahead
+			"\xff\xfb\x01" // will(251) echo
+			"\xff\xfd\x03" // do(253) suppress go ahead
+			"\xff\xfd\x01" // do(253) echo
+			"\xff\xfb\x1f" // will(251) negotiate terminal size
+			"\xff\xfd\x1f" // do(253) negotiate terminal size
 		);
-	yascreen_reqsize(s);
+		yascreen_reqsize(s);
+	} else
+		outs(s,
+			"\xff\xfc\x03" // wont(251) suppress go ahead
+			"\xff\xfc\x01" // wont(251) echo
+			"\xff\xfe\x03" // dont(253) suppress go ahead
+			"\xff\xfe\x01" // dont(253) echo
+			"\xff\xfc\x1f" // wont(251) negotiate terminal siz
+			"\xff\xfe\x1f" // dont(253) negotiate terminal size
+		);
 } // }}}
 
 inline int yascreen_resize(yascreen *s,int sx,int sy) { // {{{
