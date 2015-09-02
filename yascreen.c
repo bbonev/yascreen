@@ -1,4 +1,4 @@
-// $Id: yascreen.c,v 1.61 2015/09/02 04:46:36 bbonev Exp $
+// $Id: yascreen.c,v 1.62 2015/09/02 16:11:39 bbonev Exp $
 //
 // Copyright © 2015 Boian Bonev (bbonev@ipacct.com) {{{
 //
@@ -355,7 +355,6 @@ inline void yascreen_init_telnet(yascreen *s) { // {{{
 			"\xff\xfc\x1f" // wont(251) negotiate terminal size
 			"\xff\xfe\x1f" // dont(253) negotiate terminal size
 		);
-	yascreen_reqsize(s);
 } // }}}
 
 inline int yascreen_resize(yascreen *s,int sx,int sy) { // {{{
