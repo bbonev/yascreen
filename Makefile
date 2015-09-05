@@ -78,6 +78,8 @@ install: all
 clean:
 	rm -f yastest yastest.shared yastest.o yascreen.o libyascreen.a libyascreen.so libyascreen.so.$(SOVERM) libyascreen.so.$(SOVERF)
 
-rebuild: clean all
+rebuild:
+	$(MAKE) clean
+	$(MAKE) all
 
 .PHONY: install clean rebuild all
