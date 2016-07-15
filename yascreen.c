@@ -1,4 +1,4 @@
-// $Id: yascreen.c,v 1.62 2015/09/02 16:11:39 bbonev Exp $
+// $Id: yascreen.c,v 1.64 2016/07/13 11:02:01 bbonev Exp $
 //
 // Copyright © 2015 Boian Bonev (bbonev@ipacct.com) {{{
 //
@@ -29,6 +29,7 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/select.h>
 #include <unistd.h>
 #include <termios.h>
 #include <inttypes.h>
@@ -1249,7 +1250,9 @@ inline void yascreen_term_set(yascreen *s,int mode) { // {{{
 	// set input modes
 	t.c_iflag&=~(BRKINT|ICRNL|INPCK|ISTRIP|IXON);
 	// no post processing
-	t.c_oflag&=~(OPOST);
+	t.c_oflag&=~(OPOST|ONLCR|OCRNL);
+	if (mode&YAS_ONLCR)
+		t.c_oflag|=ONLCR|OPOST;
 	// 8bit mode
 	t.c_cflag|=CS8;
 	// minimum of number input read.

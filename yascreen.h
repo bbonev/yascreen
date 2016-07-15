@@ -1,4 +1,4 @@
-// $Id: yascreen.h,v 1.36 2015/08/24 18:46:19 bbonev Exp $
+// $Id: yascreen.h,v 1.37 2016/07/13 11:02:03 bbonev Exp $
 //
 // Copyright © 2015 Boian Bonev (bbonev@ipacct.com) {{{
 //
@@ -62,6 +62,7 @@ extern "C" {
 #define YAS_NOBUFF 1
 #define YAS_NOSIGN 2
 #define YAS_NOECHO 4
+#define YAS_ONLCR 8
 
 #define YAS_K_ALT(code) (((code)&0xff)|0x200)
 
