@@ -1,4 +1,4 @@
-// $Id: yascreen.c,v 1.64 2016/07/13 11:02:01 bbonev Exp $
+// $Id: yascreen.c,v 1.66 2016/08/05 05:38:49 bbonev Exp $
 //
 // Copyright © 2015 Boian Bonev (bbonev@ipacct.com) {{{
 //
@@ -243,9 +243,29 @@ inline void *yascreen_get_hint_p(yascreen *s) { // {{{
 	return s->phint;
 } // }}}
 
+static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 1.66 $\n\n"; // {{{
+// }}}
+
+inline const char *yascreen_ver(void) { // {{{
+	return myver;
+} // }}}
+
 inline yascreen *yascreen_init(int sx,int sy) { // {{{
 	yascreen *s;
 	int i;
+
+	if (myver[0]==0) { // reformat the static version string
+		char *rev=strstr(myver+1,"$Revision: ");
+		int vermaj,vermin;
+
+		if (rev) {
+			sscanf(rev+strlen("$Revision: "),"%d.%d",&vermaj,&vermin);
+			vermaj+=vermin/100;
+			vermin=vermin%100;
+			memmove(myver,myver+1,strlen(myver+1)+1);
+			sprintf(rev-1,"%d.%d\n\n",vermaj,vermin);
+		}
+	}
 
 	if (sx<0||sy<0)
 		return NULL;
@@ -1827,6 +1847,7 @@ inline int yascreen_getch_to(yascreen *s,int timeout) { // {{{
 	struct timeval to,*pto=&to;
 	fd_set r;
 
+	memset(&r,0,sizeof r); // make clang static analyzer happier (llvm bug #8920)
 	if (!s)
 		return -1;
 

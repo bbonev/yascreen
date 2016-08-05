@@ -1,4 +1,4 @@
-// $Id: yascreen.h,v 1.37 2016/07/13 11:02:03 bbonev Exp $
+// $Id: yascreen.h,v 1.38 2016/08/05 05:38:52 bbonev Exp $
 //
 // Copyright © 2015 Boian Bonev (bbonev@ipacct.com) {{{
 //
@@ -329,6 +329,8 @@ typedef struct _yascreen yascreen;
 // allocate and initialize screen data
 // output defaults to stdout
 inline yascreen *yascreen_init(int sx,int sy);
+// get library version as static string
+inline const char *yascreen_ver(void);
 // change output; if output is NULL, default is to stdout
 inline int yascreen_setout(yascreen *s,ssize_t (*out)(yascreen *s,const void *data,size_t len));
 // enable handling of telnet protocol
