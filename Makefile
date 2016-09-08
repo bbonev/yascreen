@@ -37,6 +37,17 @@ CCOPT:=-Wall $(DEBUG) -I. --std=gnu89 -flto
 endif
 endif
 
+CP-A:=cp -a
+ifeq ($(shell uname -s),OpenBSD)
+ifeq ($(CC),cc)
+CC:=egcc
+endif
+AR=ar
+RANLIB=ranlib
+CCOPT:=-Wall $(DEBUG) -I. --std=gnu89
+CP-A:=cp -fp
+endif
+
 # allow to pass additional compiler flags
 
 CFLAGS:=$(CCOPT) $(CFLAGS)
@@ -50,11 +61,11 @@ yastest.o: yastest.c yascreen.h
 	$(CC) $(CFLAGS) -o $@ -c $<
 
 yastest: yastest.o yascreen.o
-	$(CC) $(CFLAGS) -o $@ $^ -lrt
+	$(CC) $(CFLAGS) -o $@ $^
 	$(STRIP) $@
 
 yastest.shared: yastest.o libyascreen.so
-	$(CC) $(CFLAGS) -o $@ $^ -lrt -L. -lyascreen
+	$(CC) $(CFLAGS) -o $@ $^ -L. -lyascreen
 	$(STRIP) $@
 
 libyascreen.a: yascreen.o
@@ -68,12 +79,12 @@ libyascreen.so.$(SOVERM): libyascreen.so.$(SOVERF)
 	ln -fs $^ $@
 
 libyascreen.so.$(SOVERF): yascreen.c yascreen.h
-	$(CC) $(CFLAGS) -o $@ $< -fPIC -lrt -shared
+	$(CC) $(CFLAGS) -o $@ $< -fPIC -shared
 	$(STRIP) $@
 
 install: all
-	cp -a libyascreen.a libyascreen.so libyascreen.so.$(SOVERM) libyascreen.so.$(SOVERF) $(PREFIX)/lib/
-	cp -a yascreen.h $(PREFIX)/include/
+	$(CP-A) libyascreen.a libyascreen.so libyascreen.so.$(SOVERM) libyascreen.so.$(SOVERF) $(PREFIX)/lib/
+	$(CP-A) yascreen.h $(PREFIX)/include/
 
 clean:
 	rm -f yastest yastest.shared yastest.o yascreen.o libyascreen.a libyascreen.so libyascreen.so.$(SOVERM) libyascreen.so.$(SOVERF)

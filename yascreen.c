@@ -1,4 +1,4 @@
-// $Id: yascreen.c,v 1.66 2016/08/05 05:38:49 bbonev Exp $
+// $Id: yascreen.c,v 1.68 2016/09/07 08:25:43 bbonev Exp $
 //
 // Copyright © 2015 Boian Bonev (bbonev@ipacct.com) {{{
 //
@@ -43,6 +43,8 @@
 
 #define mymax(a,b) (((a)>(b))?(a):(b))
 #define mymin(a,b) (((a)<(b))?(a):(b))
+
+#define ESC "\x1b"
 
 // size of string that can be stored immediately w/o allocation
 #define PSIZE (sizeof(char *))
@@ -243,7 +245,7 @@ inline void *yascreen_get_hint_p(yascreen *s) { // {{{
 	return s->phint;
 } // }}}
 
-static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 1.66 $\n\n"; // {{{
+static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 1.68 $\n\n"; // {{{
 // }}}
 
 inline const char *yascreen_ver(void) { // {{{
@@ -263,7 +265,7 @@ inline yascreen *yascreen_init(int sx,int sy) { // {{{
 			vermaj+=vermin/100;
 			vermin=vermin%100;
 			memmove(myver,myver+1,strlen(myver+1)+1);
-			sprintf(rev-1,"%d.%d\n\n",vermaj,vermin);
+			snprintf(rev-1,sizeof myver-(rev-1-myver),"%d.%d\n\n",vermaj,vermin);
 		}
 	}
 
@@ -469,7 +471,7 @@ inline void yascreen_free(yascreen *s) { // {{{
 		free(s->tsstack);
 	if (s->keys)
 		free(s->keys);
-	outs(s,"\e[0m");
+	outs(s,ESC"[0m");
 	free(s);
 } // }}}
 
@@ -479,46 +481,46 @@ inline void yascreen_update_attr(yascreen *s,uint32_t oattr,uint32_t nattr) { //
 
 	if (oattr==0xffffffff) {
 		oattr=~nattr; // force setting all
-		outs(s,"\e0m");
+		outs(s,ESC"0m");
 	}
 
 	if ((oattr&YAS_BOLD)!=(nattr&YAS_BOLD))
-		outs(s,(nattr&YAS_BOLD)?"\e[1m":"\e[21m");
+		outs(s,(nattr&YAS_BOLD)?ESC"[1m":ESC"[21m");
 	if ((oattr&YAS_ITALIC)!=(nattr&YAS_ITALIC))
-		outs(s,(nattr&YAS_ITALIC)?"\e[3m":"\e[23m");
+		outs(s,(nattr&YAS_ITALIC)?ESC"[3m":ESC"[23m");
 	if ((oattr&YAS_UNDERL)!=(nattr&YAS_UNDERL))
-		outs(s,(nattr&YAS_UNDERL)?"\e[4m":"\e[24m");
+		outs(s,(nattr&YAS_UNDERL)?ESC"[4m":ESC"[24m");
 	if ((oattr&YAS_BLINK)!=(nattr&YAS_BLINK))
-		outs(s,(nattr&YAS_BLINK)?"\e[5m":"\e[25m");
+		outs(s,(nattr&YAS_BLINK)?ESC"[5m":ESC"[25m");
 	if ((oattr&YAS_INVERSE)!=(nattr&YAS_INVERSE))
-		outs(s,(nattr&YAS_INVERSE)?"\e[7m":"\e[27m");
+		outs(s,(nattr&YAS_INVERSE)?ESC"[7m":ESC"[27m");
 	if ((oattr&YAS_STRIKE)!=(nattr&YAS_STRIKE))
-		outs(s,(nattr&YAS_STRIKE)?"\e[9m":"\e[29m");
+		outs(s,(nattr&YAS_STRIKE)?ESC"[9m":ESC"[29m");
 	if (YAS_FG(oattr)!=YAS_FG(nattr)) {
 		if (YAS_ISXCOLOR(YAS_FG(nattr)))
-			outf(s,"\e[38;5;%dm",YAS_FG(nattr)-0x100);
+			outf(s,ESC"[38;5;%dm",YAS_FG(nattr)-0x100);
 		else {
 			if (YAS_ISCOLOR(YAS_FG(nattr)))
-				outf(s,"\e[%dm",YAS_FG(nattr)-8+30);
+				outf(s,ESC"[%dm",YAS_FG(nattr)-8+30);
 			else
-				outs(s,"\e[39m");
+				outs(s,ESC"[39m");
 		}
 	}
 	if (YAS_BG(oattr)!=YAS_BG(nattr)) {
 		if (YAS_ISXCOLOR(YAS_BG(nattr)))
-			outf(s,"\e[48;5;%dm",YAS_BG(nattr)-0x100);
+			outf(s,ESC"[48;5;%dm",YAS_BG(nattr)-0x100);
 		else {
 			if (YAS_ISCOLOR(YAS_BG(nattr)))
-				outf(s,"\e[%dm",YAS_BG(nattr)-8+40);
+				outf(s,ESC"[%dm",YAS_BG(nattr)-8+40);
 			else
-				outs(s,"\e[49m");
+				outs(s,ESC"[49m");
 		}
 	}
 } // }}}
 
 static inline int yascreen_update_range(yascreen *s,int y1,int y2) { // {{{
 	int i,j,ob=0,redraw=0;
-	char ra[]="\e[0m";
+	char ra[]=ESC"[0m";
 	uint32_t lsty=0,nsty;
 
 	if (!s)
@@ -527,7 +529,7 @@ static inline int yascreen_update_range(yascreen *s,int y1,int y2) { // {{{
 	if (s->redraw) {
 		redraw=1;
 		s->redraw=0;
-		outf(s,"\e[2J\e[H%s",ra); // clear and position on topleft
+		outf(s,ESC"[2J"ESC"[H%s",ra); // clear and position on topleft
 		*ra=0;
 	}
 
@@ -550,13 +552,13 @@ static inline int yascreen_update_range(yascreen *s,int y1,int y2) { // {{{
 
 			if (diff||!skip) {
 				if (skip) {
-					outf(s,"\e[%d;%dH%s",1+j,1+i,ra);
+					outf(s,ESC"[%d;%dH%s",1+j,1+i,ra);
 					*ra=0;
 					skip=0;
 				}
 				if (diff) {
 					if (cnt>7) {
-						outf(s,"\e[%d;%dH%s",1+j,1+i,ra);
+						outf(s,ESC"[%d;%dH%s",1+j,1+i,ra);
 						*ra=0;
 						cnt=0;
 					}
@@ -583,7 +585,7 @@ static inline int yascreen_update_range(yascreen *s,int y1,int y2) { // {{{
 		}
 	}
 	if (s->cursor)
-		outf(s,"\e[%d;%dH",s->cursory+1,s->cursorx+1);
+		outf(s,ESC"[%d;%dH",s->cursory+1,s->cursorx+1);
 
 	return ob;
 } // }}}
@@ -1111,7 +1113,7 @@ inline int yascreen_print(yascreen *s,const char *format,...) { // {{{
 } // }}}
 
 inline const char *yascreen_clearln_s(yascreen *s) { // {{{
-	return "\e[2K";
+	return ESC"[2K";
 } // }}}
 
 inline void yascreen_dump(yascreen *s) { // {{{
@@ -1140,9 +1142,9 @@ inline void yascreen_cursor(yascreen *s,int on) { // {{{
 
 	s->cursor=!!on;
 	if (on)
-		outs(s,"\e[?25h"); // show cursor
+		outs(s,ESC"[?25h"); // show cursor
 	else
-		outs(s,"\e[?25l"); // hide cursor
+		outs(s,ESC"[?25l"); // hide cursor
 } // }}}
 
 inline void yascreen_cursor_xy(yascreen *s,int x,int y) { // {{{
@@ -1151,7 +1153,7 @@ inline void yascreen_cursor_xy(yascreen *s,int x,int y) { // {{{
 
 	s->cursorx=mymin(mymax(x,0),s->sx-1);
 	s->cursory=mymin(mymax(y,0),s->sy-1);
-	outf(s,"\e[%d;%dH",s->cursory+1,s->cursorx+1);
+	outf(s,ESC"[%d;%dH",s->cursory+1,s->cursorx+1);
 } // }}}
 
 inline void yascreen_altbuf(yascreen *s,int on) { // {{{
@@ -1159,16 +1161,16 @@ inline void yascreen_altbuf(yascreen *s,int on) { // {{{
 		return;
 
 	if (on)
-		outs(s,"\e[?1049h"); // go to alternative buffer
+		outs(s,ESC"[?1049h"); // go to alternative buffer
 	else
-		outs(s,"\e[?1049l"); // go back to normal buffer
+		outs(s,ESC"[?1049l"); // go back to normal buffer
 } // }}}
 
 inline void yascreen_clear(yascreen *s) { // {{{
 	if (!s)
 		return;
 
-	outs(s,"\e[0m\e[2J\e[H"); // reset attributes, clear screen and reset position
+	outs(s,ESC"[0m"ESC"[2J"ESC"[H"); // reset attributes, clear screen and reset position
 } // }}}
 
 inline void yascreen_clearln(yascreen *s) { // {{{
@@ -1904,7 +1906,6 @@ inline int yascreen_getch_to(yascreen *s,int timeout) { // {{{
 			to.tv_usec=(tto%1000)*1000;
 		}
 	}
-	return -1;
 } // }}}
 
 inline void yascreen_ungetch(yascreen *s,int key) { // {{{
@@ -1987,6 +1988,6 @@ inline void yascreen_getsize(yascreen *s,int *sx,int *sy) { // {{{
 } // }}}
 
 inline void yascreen_reqsize(yascreen *s) { // {{{
-	outs(s,"\e[s\e[999;999H\e[6n\e[u");
+	outs(s,ESC"[s"ESC"[999;999H"ESC"[6n"ESC"[u");
 } // }}}
 
