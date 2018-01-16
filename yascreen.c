@@ -1,4 +1,4 @@
-// $Id: yascreen.c,v 1.68 2016/09/07 08:25:43 bbonev Exp $
+// $Id: yascreen.c,v 1.69 2018/01/16 00:17:25 bbonev Exp $
 //
 // Copyright © 2015 Boian Bonev (bbonev@ipacct.com) {{{
 //
@@ -62,22 +62,22 @@
 #define YAS_TOUCHED 0x40000000 // there are changes in this line, update cannot skip it
 #define YAS_INTERNAL (YAS_STORAGE|YAS_TOUCHED)
 
-#define TELNET_EOSN 240 // end of subnegotiation
-#define TELNET_NOP 241 // NOP
-#define TELNET_SYNCH 242 // SYNCH
-#define TELNET_NVTBRK 243 // NVTBRK
-#define TELNET_IP 244 // IP
-#define TELNET_AO 245 // AO
-#define TELNET_AYT 246 // AYT are you there
-#define TELNET_EC 247 // EC
-#define TELNET_EL 248 // EL
-#define TELNET_GOA 249 // go ahead
-#define TELNET_SOSN 250 // start of subnegotiation
-#define TELNET_WILL 251 // will
-#define TELNET_WONT 252 // wont
-#define TELNET_DO 253 // do
-#define TELNET_DONT 254 // dont
-#define TELNET_IAC 255 // telnet protocol escape code (IAC)
+#define TELNET_EOSN 240 // 0xf0 // end of subnegotiation
+#define TELNET_NOP 241 // 0xf1 // NOP
+#define TELNET_SYNCH 242 // 0xf2 // SYNCH
+#define TELNET_NVTBRK 243 //0xf3 // NVTBRK
+#define TELNET_IP 244 // 0xf4 // IP
+#define TELNET_AO 245 // 0xf5 // AO
+#define TELNET_AYT 246 //0xf6 // AYT are you there
+#define TELNET_EC 247 // 0xf7 // EC
+#define TELNET_EL 248 // 0xf8 // EL
+#define TELNET_GOA 249 // 0xf9 // go ahead
+#define TELNET_SOSN 250 // 0xfa // start of subnegotiation
+#define TELNET_WILL 251 // 0xfb // will
+#define TELNET_WONT 252 // 0xfc // wont
+#define TELNET_DO 253 // 0xfd // do
+#define TELNET_DONT 254 // 0xfe // dont
+#define TELNET_IAC 255 // 0xff // telnet protocol escape code (IAC)
 #define TELNET_NOOP 0x100 // telnet protocol handler have eaten a byte w/o yielding any result
 #define TELNET_SIZE 0x101 // telnet protocol handler have detected screen size change notification
 
@@ -245,7 +245,7 @@ inline void *yascreen_get_hint_p(yascreen *s) { // {{{
 	return s->phint;
 } // }}}
 
-static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 1.68 $\n\n"; // {{{
+static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 1.69 $\n\n"; // {{{
 // }}}
 
 inline const char *yascreen_ver(void) { // {{{
