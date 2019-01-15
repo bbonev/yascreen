@@ -18,3 +18,4 @@ Main features
 
 Current development is done on Linux, with additional testing on OpenBSD/FreeBSD; other platforms may need minimal fixes.
 
+On \*BSD a `gmake` is required to build.
