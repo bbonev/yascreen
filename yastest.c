@@ -92,6 +92,7 @@ int main(void) {
 	yascreen_altbuf(s,1);
 	yascreen_clear(s);
 	yascreen_printxy(s,0,0,YAS_BLINK,"press 'q' to quit%*s",SIZEY,"");
+	yascreen_printxy(s,0,1,YAS_BLINK,"press 't' to perform test%*s",SIZEY,"");
 	yascreen_update(s);
 	//yascreen_ungetch(s,'1');
 	//yascreen_ungetch(s,'2');
@@ -104,6 +105,18 @@ int main(void) {
 
 		ch=yascreen_getch(s);
 		switch (ch) {
+			case 't': // test for reuse
+				yascreen_clear(s);
+				yascreen_cursor(s,1);
+				yascreen_altbuf(s,0);
+				yascreen_term_restore(s);
+				sleep(2);
+				yascreen_term_set(s,YAS_NOBUFF|YAS_NOSIGN|YAS_NOECHO);
+				yascreen_cursor(s,0);
+				yascreen_altbuf(s,1);
+				yascreen_redraw(s);
+				yascreen_update(s);
+				break;
 			case 'q': // exit
 				yascreen_clear(s);
 				yascreen_cursor(s,1);
