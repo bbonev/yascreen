@@ -1,4 +1,4 @@
-// $Id: yascreen.c,v 1.69 2018/01/16 00:17:25 bbonev Exp $
+// $Id: yascreen.c,v 1.71 2020/02/08 06:54:11 bbonev Exp $
 //
 // Copyright © 2015 Boian Bonev (bbonev@ipacct.com) {{{
 //
@@ -245,7 +245,7 @@ inline void *yascreen_get_hint_p(yascreen *s) { // {{{
 	return s->phint;
 } // }}}
 
-static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 1.69 $\n\n"; // {{{
+static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 1.71 $\n\n"; // {{{
 // }}}
 
 inline const char *yascreen_ver(void) { // {{{
@@ -581,7 +581,7 @@ static inline int yascreen_update_range(yascreen *s,int y1,int y2) { // {{{
 			if (s->mem[j*s->sx+i].style&YAS_STORAGE)
 				s->scr[j*s->sx+i].p=strdup(s->mem[j*s->sx+i].p);
 			else
-				strncpy(s->scr[j*s->sx+i].d,s->mem[j*s->sx+i].d,sizeof s->mem[j*s->sx+i].d);
+				strncpy(s->scr[j*s->sx+i].d,s->mem[j*s->sx+i].d,sizeof s->scr[j*s->sx+i].d);
 		}
 	}
 	if (s->cursor)
@@ -682,13 +682,15 @@ static inline void yascreen_putcw(yascreen *s,uint32_t attr,const char *str,int 
 			strncpy(s->mem[s->cursorx+s->cursory*s->sx].d+clen,str,sizeof s->mem[s->cursorx+s->cursory*s->sx].d-clen);
 			s->mem[s->cursorx+s->cursory*s->sx].style=attr; // as a side effect combining chars set attr for main char
 		} else {
-			ts=malloc(clen+strlen(str)+1);
+			size_t tslen=clen+strlen(str)+1;
+
+			ts=malloc(tslen);
 			if (!ts) {
 				s->cursorx++;
 				return; // nothing more we could do
 			}
-			strncpy(ts,(s->mem[s->cursorx+s->cursory*s->sx].style&YAS_STORAGE)?s->mem[s->cursorx+s->cursory*s->sx].p:s->mem[s->cursorx+s->cursory*s->sx].d,clen+strlen(str)+1);
-			strncpy(ts+clen,str,strlen(str)+1);
+			strcpy(ts,(s->mem[s->cursorx+s->cursory*s->sx].style&YAS_STORAGE)?s->mem[s->cursorx+s->cursory*s->sx].p:s->mem[s->cursorx+s->cursory*s->sx].d);
+			strncpy(ts+clen,str,tslen-clen);
 			if (s->mem[s->cursorx+s->cursory*s->sx].style&YAS_STORAGE)
 				free(s->mem[s->cursorx+s->cursory*s->sx].p);
 			s->mem[s->cursorx+s->cursory*s->sx].p=ts;
