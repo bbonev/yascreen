@@ -1,4 +1,4 @@
-// $Id: yascreen.c,v 1.71 2020/02/08 06:54:11 bbonev Exp $
+// $Id: yascreen.c,v 1.72 2020/03/14 20:28:28 bbonev Exp $
 //
 // Copyright © 2015 Boian Bonev (bbonev@ipacct.com) {{{
 //
@@ -19,7 +19,13 @@
 // }}}
 
 // {{{ includes
-#define _GNU_SOURCE 1
+
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+#ifndef _DEFAULT_SOURCE
+#define _DEFAULT_SOURCE
+#endif
 
 #include <time.h>
 #include <ctype.h>
@@ -245,7 +251,7 @@ inline void *yascreen_get_hint_p(yascreen *s) { // {{{
 	return s->phint;
 } // }}}
 
-static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 1.71 $\n\n"; // {{{
+static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 1.72 $\n\n"; // {{{
 // }}}
 
 inline const char *yascreen_ver(void) { // {{{

@@ -4,5 +4,5 @@
 
 $(.TARGETS):
 	@if [ ! -x "`which gmake 2>/dev/null`" ]; then echo gmake is required; false; fi
-	@gmake -f Makefile.main $(.TARGETS)
+	@gmake -f GNUmakefile $(.TARGETS)
 
