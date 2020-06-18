@@ -1,4 +1,4 @@
-// $Id: yascreen.c,v 1.72 2020/03/14 20:28:28 bbonev Exp $
+// $Id: yascreen.c,v 1.73 2020/06/18 21:16:12 bbonev Exp $
 //
 // Copyright © 2015 Boian Bonev (bbonev@ipacct.com) {{{
 //
@@ -87,6 +87,8 @@
 #define TELNET_NOOP 0x100 // telnet protocol handler have eaten a byte w/o yielding any result
 #define TELNET_SIZE 0x101 // telnet protocol handler have detected screen size change notification
 
+#define TELNET_NAWS 31 // 0x1f // negotiate about window size
+
 // data is kept as utf8, including its combining chars
 // if it fits in PSZIE, it is in d, with 0 terminating char
 // if the char at previous position requires 2 columns, current char should be empty
@@ -137,19 +139,21 @@ typedef enum { // utf8 sequence state machine
 
 struct _yascreen {
 	int sx,sy; // size of screen
-	int redraw; // flag to redraw from scratch
 	ssize_t (*outcb)(yascreen *s,const void *data,size_t len); // output callback
 	cell *mem; // memory state
 	cell *scr; // screen state
 	struct termios *tsstack; // saved terminal state
-	int tssize; // number if items in the stack
+	int tssize; // number of items in the stack
 	int escto; // single ESC key timeout
 	int keysize; // saved key storage size
 	int keycnt; // saved key count
 	int *keys; // saved key array
 	unsigned char ansibuf[20]; // buffer for escape sequence parsing
 	unsigned char ansipos; // next byte will go in this pos
-	unsigned char utf[3]; // buffer for utf8 sequence parsing; (must be increased to 5 if some day unicode permits 5 and 6 byte sequences; last byte is not put here, its never zero terminated
+	unsigned char sosnbuf[20]; // buffer for telnet SOSN options parsing
+	unsigned char sosnpos; // next byte will go in this pos
+	unsigned char utf[3]; // buffer for utf8 sequence parsing; last byte is not put here, its never zero terminated
+						// must be increased to 4 or 5 if some day unicode permits 5 or 6 byte sequences
 	int64_t escts; // single ESC key timestamp
 	yas_k_state state; // input parser state
 	yas_t_state tstate; // telnet parser state
@@ -158,9 +162,11 @@ struct _yascreen {
 	int cursory; // position to place cursor on update
 	int scrx; // last reported screen size
 	int scry; // last reported screen size
-	uint8_t haveansi:1; // we do have a reported screen size
+	uint8_t haveansi:1; // we do have a reported screen size from ansi sequence
+	uint8_t havenaws:1; // we do have a reported screen size from telent naws
 	uint8_t istelnet:1; // do process telnet sequences
 	uint8_t cursor:1; // last cursor state
+	uint8_t redraw:1; // flag to redraw from scratch
 	int hint; // user defined hint (scalar)
 	void *phint; // user defined hint (pointer)
 };
@@ -251,7 +257,7 @@ inline void *yascreen_get_hint_p(yascreen *s) { // {{{
 	return s->phint;
 } // }}}
 
-static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 1.72 $\n\n"; // {{{
+static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 1.73 $\n\n"; // {{{
 // }}}
 
 inline const char *yascreen_ver(void) { // {{{
@@ -1359,6 +1365,7 @@ static inline int yascreen_feed_telnet(yascreen *s,unsigned char c) { // {{{
 					s->tstate=T_NORM;
 					return TELNET_NOOP;
 				case TELNET_SOSN: // start of subnegotiation
+					s->sosnpos=0;
 					s->tstate=T_IAC_SB;
 					return TELNET_NOOP;
 				case TELNET_WILL: // will
@@ -1378,13 +1385,32 @@ static inline int yascreen_feed_telnet(yascreen *s,unsigned char c) { // {{{
 		case T_IAC_SB:
 			if (c==TELNET_IAC)
 				s->tstate=T_IAC_SE;
+			else
+				if (s->sosnpos<sizeof s->sosnbuf)
+					s->sosnbuf[s->sosnpos++]=c;
 			return TELNET_NOOP;
 		case T_IAC_SE:
 			switch (c) {
 				case TELNET_EOSN: // try to redetect terminal size
 					s->tstate=T_NORM;
+					if (s->sosnpos==5&&s->sosnbuf[0]==TELNET_NAWS) { // get terminal size from NAWS
+						uint16_t sx,sy;
+
+						sx=(s->sosnbuf[1]<<8)+s->sosnbuf[2];
+						sy=(s->sosnbuf[3]<<8)+s->sosnbuf[4];
+						if (sx>10&&sy>3&&sx<=999&&sy<=999) { // ignore non-sane values
+							s->scrx=sx;
+							s->scry=sy;
+							s->havenaws=1;
+							yascreen_pushch(s,YAS_SCREEN_SIZE);
+							return TELNET_NOOP;
+						}
+					}
+					// fallback to the old way of redetecting screen size via ansi
 					return TELNET_SIZE;
 				case TELNET_IAC: // escaped 255
+					if (s->sosnpos<sizeof s->sosnbuf)
+						s->sosnbuf[s->sosnpos++]=c;
 					s->tstate=T_IAC_SB;
 					return TELNET_NOOP;
 				default: // protocol error
