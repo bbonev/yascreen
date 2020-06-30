@@ -1,6 +1,6 @@
-// $Id: yascreen.c,v 1.73 2020/06/18 21:16:12 bbonev Exp $
+// $Id: yascreen.c,v 1.74 2020/06/29 01:56:10 bbonev Exp $
 //
-// Copyright © 2015 Boian Bonev (bbonev@ipacct.com) {{{
+// Copyright © 2015-2020 Boian Bonev (bbonev@ipacct.com) {{{
 //
 // This file is part of yascreen - yet another screen library.
 //
@@ -28,17 +28,14 @@
 #endif
 
 #include <time.h>
-#include <ctype.h>
 #include <wchar.h>
-#include <errno.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/select.h>
 #include <unistd.h>
 #include <termios.h>
-#include <inttypes.h>
+#include <sys/time.h>
 #include <sys/ioctl.h>
 
 #include <yascreen.h>
@@ -257,7 +254,7 @@ inline void *yascreen_get_hint_p(yascreen *s) { // {{{
 	return s->phint;
 } // }}}
 
-static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 1.73 $\n\n"; // {{{
+static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 1.74 $\n\n"; // {{{
 // }}}
 
 inline const char *yascreen_ver(void) { // {{{
