@@ -1,4 +1,4 @@
-// $Id: yascreen.h,v 1.38 2016/08/05 05:38:52 bbonev Exp $
+// $Id: yascreen.h,v 1.39 2020/07/09 20:55:29 bbonev Exp $
 //
 // Copyright © 2015 Boian Bonev (bbonev@ipacct.com) {{{
 //
@@ -202,7 +202,7 @@ typedef enum {
 	YAS_K_C_8=0x7f,
 	YAS_K_BSP=0x7f,
 	// extended keys, send as escape sequences
-	// functon keys with ALT/CTRL/SHIFT
+	// function keys with ALT/CTRL/SHIFT
 	YAS_K_F1=0x100,
 	YAS_K_F2=0x101,
 	YAS_K_F3=0x102,
@@ -404,9 +404,9 @@ inline int yascreen_y(yascreen *s);
 // set timeout for single ESC key press
 inline void yascreen_esc_to(yascreen *s,int timeout);
 // in case of external event loop, this call will check for single ESC key
-// should be called regularly enough so that above specified timeout is not exteneded too much
+// should be called regularly enough so that the above specified timeout is not extended too much
 // if not called often enough then single ESC will be yielded after longer timeout
-// if not called at all then singled ESC will be yielded with next key press
+// if not called at all then single ESC will be yielded with next key press
 inline void yascreen_ckto(yascreen *s);
 // wait for a key, return ASCII or extended keycode, wait no more than timeout in milliseconds
 inline int yascreen_getch_to(yascreen *s,int timeout);
