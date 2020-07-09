@@ -1,4 +1,4 @@
-// $Id: yascreen.c,v 1.74 2020/06/29 01:56:10 bbonev Exp $
+// $Id: yascreen.c,v 1.76 2020/07/09 00:03:29 bbonev Exp $
 //
 // Copyright © 2015-2020 Boian Bonev (bbonev@ipacct.com) {{{
 //
@@ -179,7 +179,7 @@ static inline int64_t mytime() { // {{{
 	return res;
 } // }}}
 
-static inline ssize_t out(yascreen *s,const void *buf,size_t len) { // {{{
+static inline ssize_t out(yascreen *s __attribute__((unused)),const void *buf,size_t len) { // {{{
 	return write(STDOUT_FILENO,buf,len);
 } // }}}
 
@@ -254,7 +254,7 @@ inline void *yascreen_get_hint_p(yascreen *s) { // {{{
 	return s->phint;
 } // }}}
 
-static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 1.74 $\n\n"; // {{{
+static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 1.76 $\n\n"; // {{{
 // }}}
 
 inline const char *yascreen_ver(void) { // {{{
@@ -274,7 +274,7 @@ inline yascreen *yascreen_init(int sx,int sy) { // {{{
 			vermaj+=vermin/100;
 			vermin=vermin%100;
 			memmove(myver,myver+1,strlen(myver+1)+1);
-			snprintf(rev-1,sizeof myver-(rev-1-myver),"%d.%d\n\n",vermaj,vermin);
+			snprintf(rev-1,sizeof myver-(rev-1-myver),"%d.%02d\n\n",vermaj,vermin);
 		}
 	}
 
@@ -607,14 +607,13 @@ inline int yascreen_update(yascreen *s) { // {{{
 } // }}}
 
 static inline void yascreen_putcw(yascreen *s,uint32_t attr,const char *str,int width) { // {{{
-	int i;
-
 	if (!*str) // noop
 		return;
 	if (!str[1]) { // handle CR/LF
 		switch (*str) {
 			case '\n':
 				s->cursory++;
+				// fall through
 			case '\r':
 				s->cursorx=0;
 				return;
@@ -622,7 +621,9 @@ static inline void yascreen_putcw(yascreen *s,uint32_t attr,const char *str,int 
 	}
 	if (s->cursory<0||s->cursory>=s->sy)
 		return;
-	if (width&&s->cursory>=0&&s->cursorx>=0&&s->cursorx<s->sx&&s->cursory<s->sy&&s->cursorx+width<=s->sx) {
+	if (width&&s->cursorx>=0&&s->cursorx<s->sx&&s->cursorx+width<=s->sx) {
+		int i;
+
 		// normal char
 		if (s->mem[s->cursorx+s->cursory*s->sx].style&YAS_STORAGE) {
 			s->mem[s->cursorx+s->cursory*s->sx].style&=~YAS_STORAGE;
@@ -732,7 +733,7 @@ static inline void yascreen_putcw(yascreen *s,uint32_t attr,const char *str,int 
 inline int yascreen_putsxy(yascreen *s,int x,int y,uint32_t attr,const char *str) { // {{{
 	yas_u_state st=U_NORM;
 	char utf[5]; // 4 byte sequence + 1 for terminating 0
-	int i;
+	size_t i;
 
 	if (!s)
 		return EOF;
@@ -1123,7 +1124,7 @@ inline int yascreen_print(yascreen *s,const char *format,...) { // {{{
 	return rv;
 } // }}}
 
-inline const char *yascreen_clearln_s(yascreen *s) { // {{{
+inline const char *yascreen_clearln_s(yascreen *s __attribute__((unused))) { // {{{
 	return ESC"[2K";
 } // }}}
 
@@ -1133,11 +1134,11 @@ inline void yascreen_dump(yascreen *s) { // {{{
 	if (!s)
 		return;
 
-	printf("PSIZE: %zd\n",PSIZE);
+	printf("PSIZE: %zu\n",PSIZE);
 
 	for (j=0;j<s->sy;j++)
 		for (i=0;i<s->sx;i++)
-			printf("x: %3d y: %3d len: %3zd attr: %08x s: %s\n",i,j,strlen((s->mem[i+s->sx*j].style&YAS_STORAGE)?s->mem[i+s->sx*j].p:s->mem[i+s->sx*j].d),s->mem[i+s->sx*j].style,(s->mem[i+s->sx*j].style&YAS_STORAGE)?s->mem[i+s->sx*j].p:s->mem[i+s->sx*j].d);
+			printf("x: %3d y: %3d len: %3zu attr: %08x s: %s\n",i,j,strlen((s->mem[i+s->sx*j].style&YAS_STORAGE)?s->mem[i+s->sx*j].p:s->mem[i+s->sx*j].d),s->mem[i+s->sx*j].style,(s->mem[i+s->sx*j].style&YAS_STORAGE)?s->mem[i+s->sx*j].p:s->mem[i+s->sx*j].d);
 } // }}}
 
 inline void yascreen_redraw(yascreen *s) { // {{{
@@ -1445,6 +1446,7 @@ inline void yascreen_feed(yascreen *s,unsigned char c) { // {{{
 			if (c=='\n'||c==0) // ignore LF or NUL after CR
 				break;
 			s->state=ST_NORM;
+			// fall through
 		case ST_NORM:
 			if (c==YAS_K_ESC) { // handle esc sequences
 				s->escts=mytime();
