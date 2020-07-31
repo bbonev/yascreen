@@ -1,4 +1,4 @@
-// $Id: yascreen.c,v 1.76 2020/07/09 00:03:29 bbonev Exp $
+// $Id: yascreen.c,v 1.77 2020/07/31 21:52:59 bbonev Exp $
 //
 // Copyright © 2015-2020 Boian Bonev (bbonev@ipacct.com) {{{
 //
@@ -166,6 +166,8 @@ struct _yascreen {
 	uint8_t redraw:1; // flag to redraw from scratch
 	int hint; // user defined hint (scalar)
 	void *phint; // user defined hint (pointer)
+	uint8_t outb[256]; // buffered output
+	uint16_t outp; // position in outb
 };
 // }}}
 
@@ -180,7 +182,46 @@ static inline int64_t mytime() { // {{{
 } // }}}
 
 static inline ssize_t out(yascreen *s __attribute__((unused)),const void *buf,size_t len) { // {{{
-	return write(STDOUT_FILENO,buf,len);
+	size_t olen=len;
+
+repeat:
+	if (len) {
+		if (sizeof s->outb-s->outp>=len) {
+			memcpy(s->outb+s->outp,buf,len);
+			s->outp+=len;
+		} else {
+			size_t brem=sizeof s->outb-s->outp;
+			size_t wr;
+
+			memcpy(s->outb+s->outp,buf,brem);
+			s->outp+=brem;
+			buf+=brem;
+			len-=brem;
+			wr=write(STDOUT_FILENO,s->outb,s->outp);
+			if (wr<=0) // error
+				return wr;
+			if (wr==s->outp) {
+				s->outp-=wr;
+				goto repeat;
+			}
+			// wr>0 and wr<s->outp
+			memmove(s->outb,s->outb+wr,s->outp-wr);
+			s->outp-=wr;
+			goto repeat;
+		}
+	}
+	if (!olen&&s->outp) { // flush is requested
+		size_t wr=write(STDOUT_FILENO,s->outb,s->outp);
+
+		if (wr==s->outp)
+			s->outp=0;
+		else
+			if (wr>0) {
+				memmove(s->outb,s->outb+wr,s->outp-wr);
+				s->outp-=wr;
+			}
+	}
+	return olen;
 } // }}}
 
 static inline void outs(yascreen *s,const char *str) { // {{{
@@ -254,7 +295,7 @@ inline void *yascreen_get_hint_p(yascreen *s) { // {{{
 	return s->phint;
 } // }}}
 
-static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 1.76 $\n\n"; // {{{
+static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 1.77 $\n\n"; // {{{
 // }}}
 
 inline const char *yascreen_ver(void) { // {{{
@@ -595,6 +636,8 @@ static inline int yascreen_update_range(yascreen *s,int y1,int y2) { // {{{
 	}
 	if (s->cursor)
 		outf(s,ESC"[%d;%dH",s->cursory+1,s->cursorx+1);
+
+	out(s,"",0); // request a flush
 
 	return ob;
 } // }}}
@@ -1157,6 +1200,7 @@ inline void yascreen_cursor(yascreen *s,int on) { // {{{
 		outs(s,ESC"[?25h"); // show cursor
 	else
 		outs(s,ESC"[?25l"); // hide cursor
+	out(s,"",0); // request a flush
 } // }}}
 
 inline void yascreen_cursor_xy(yascreen *s,int x,int y) { // {{{
@@ -1176,6 +1220,7 @@ inline void yascreen_altbuf(yascreen *s,int on) { // {{{
 		outs(s,ESC"[?1049h"); // go to alternative buffer
 	else
 		outs(s,ESC"[?1049l"); // go back to normal buffer
+	out(s,"",0); // request a flush
 } // }}}
 
 inline void yascreen_clear(yascreen *s) { // {{{
@@ -1183,6 +1228,7 @@ inline void yascreen_clear(yascreen *s) { // {{{
 		return;
 
 	outs(s,ESC"[0m"ESC"[2J"ESC"[H"); // reset attributes, clear screen and reset position
+	out(s,"",0); // request a flush
 } // }}}
 
 inline void yascreen_clearln(yascreen *s) { // {{{
@@ -1221,6 +1267,7 @@ inline void yascreen_term_restore(yascreen *s) { // {{{
 	if (!s->tssize) // no saved state
 		return;
 
+	out(s,"",0); // request a flush
 	tcsetattr(STDOUT_FILENO,TCSANOW,s->tsstack);
 } // }}}
 
