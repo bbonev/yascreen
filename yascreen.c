@@ -1210,6 +1210,7 @@ inline void yascreen_cursor_xy(yascreen *s,int x,int y) { // {{{
 	s->cursorx=mymin(mymax(x,0),s->sx-1);
 	s->cursory=mymin(mymax(y,0),s->sy-1);
 	outf(s,ESC"[%d;%dH",s->cursory+1,s->cursorx+1);
+	out(s,"",0); // request a flush
 } // }}}
 
 inline void yascreen_altbuf(yascreen *s,int on) { // {{{
