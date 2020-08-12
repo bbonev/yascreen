@@ -1,0 +1,65 @@
+Source: yascreen
+Section: libs
+Priority: optional
+Maintainer: Boian Bonev <bbonev@ipacct.com>
+Build-Depends: debhelper-compat (= 13)
+Standards-Version: 4.5.0
+Homepage: https://github.com/bbonev/yascreen
+Vcs-Browser: https://github.com/bbonev/yascreen
+Vcs-Git: https://github.com/bbonev/yascreen.git
+Rules-Requires-Root: no
+
+Package: libyascreen-dev
+Section: libdevel
+Multi-Arch: same
+Architecture: any
+Depends: libyascreen0 (= ${binary:Version}), ${misc:Depends}
+Description: Yet Another Screen Library (lib(n)curses alternative)
+ Development files of Yet Another Screen Library - lib(n)curses alternative
+ oriented towards modern terminals.
+ .
+ Suitable for developing terminal applications or daemons with
+ telnet access and terminal support.
+ .
+ Main features
+ .
+  * small footprint
+  * does not have external dependencies
+  * allows both internal and external event loop
+  * allows stdin/stdout or external input/output (can work over socket)
+  * supports basic set of telnet sequences, making it suitable for built-in
+ terminal interfaces for daemons
+  * supports a limited set of input keystroke sequences
+  * fully unicode compatible (parts of this depend on wcwidth in libc)
+  * supports utf8 verification of input
+  * relies only on a limited subset of ansi/xterm ESC sequences, making it
+ compatible with mostly all modern terminals (inspired by linenoise)
+  * there is no curses API and ancient terminal compatibility, hence less bloat
+  * clean API with opaque private data, usable from C/C++
+ .
+
+Package: libyascreen0
+Multi-Arch: same
+Architecture: any
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: Yet Another Screen Library - development files
+ lib(n)curses alternative oriented towards modern terminals.
+ .
+ Suitable for developing terminal applications or daemons with
+ telnet access and terminal support.
+ .
+ Main features
+ .
+  * small footprint
+  * does not have external dependencies
+  * allows both internal and external event loop
+  * allows stdin/stdout or external input/output (can work over socket)
+  * supports basic set of telnet sequences, making it suitable for built-in
+ terminal interfaces for daemons
+  * supports a limited set of input keystroke sequences
+  * fully unicode compatible (parts of this depend on wcwidth in libc)
+  * supports utf8 verification of input
+  * relies only on a limited subset of ansi/xterm ESC sequences, making it
+ compatible with mostly all modern terminals (inspired by linenoise)
+  * there is no curses API and ancient terminal compatibility, hence less bloat
+  * clean API with opaque private data, usable from C/C++
