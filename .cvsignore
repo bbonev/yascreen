@@ -4,5 +4,4 @@ yastest
 yastest.shared
 libyascreen.so*
 yascreen.pc
-html
-man
+yascreen.3

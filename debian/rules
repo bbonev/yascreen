@@ -6,5 +6,4 @@ export LIBDIR=/lib/${DEB_HOST_MULTIARCH}/
 export DEB_BUILD_MAINT_OPTIONS=hardening=+all
 
 %:
-	dh $@
-	#dh $@ --buildsystem=makefile --without=autoreconf
+	dh $@ --buildsystem=makefile --without=autoreconf
