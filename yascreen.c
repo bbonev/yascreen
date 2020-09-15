@@ -1,21 +1,12 @@
-// $Id: yascreen.c,v 1.80 2020/08/12 00:35:18 bbonev Exp $
+// $Id: yascreen.c,v 1.81 2020/09/15 14:41:20 bbonev Exp $
 //
 // Copyright © 2015-2020 Boian Bonev (bbonev@ipacct.com) {{{
 //
+// SPDX-License-Identifer: LGPL-3.0-or-later
+//
 // This file is part of yascreen - yet another screen library.
 //
-// yascreen is free software: you can redistribute it and/or mowdify
-// it under the terms of the GNU Affero General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// yascreen is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Affero General Public License for more details.
-//
-// You should have received a copy of the GNU Affero General Public License
-// along with yascreen.  If not, see <http://www.gnu.org/licenses/>.
+// yascreen is free software, releasead under the terms of GNU Lesser General Public License v3.0 or later
 // }}}
 
 // {{{ includes
@@ -295,7 +286,7 @@ inline void *yascreen_get_hint_p(yascreen *s) { // {{{
 	return s->phint;
 } // }}}
 
-static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 1.80 $\n\n"; // {{{
+static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 1.81 $\n\n"; // {{{
 // }}}
 
 inline const char *yascreen_ver(void) { // {{{

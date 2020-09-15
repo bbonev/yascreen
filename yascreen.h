@@ -1,21 +1,12 @@
-// $Id: yascreen.h,v 1.39 2020/07/09 20:55:29 bbonev Exp $
+// $Id: yascreen.h,v 1.40 2020/09/15 14:41:20 bbonev Exp $
 //
-// Copyright © 2015 Boian Bonev (bbonev@ipacct.com) {{{
+// Copyright © 2015-2020 Boian Bonev (bbonev@ipacct.com) {{{
+//
+// SPDX-License-Identifer: LGPL-3.0-or-later
 //
 // This file is part of yascreen - yet another screen library.
 //
-// yascreen is free software: you can redistribute it and/or mowdify
-// it under the terms of the GNU Affero General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// yascreen is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Affero General Public License for more details.
-//
-// You should have received a copy of the GNU Affero General Public License
-// along with yascreen.  If not, see <http://www.gnu.org/licenses/>.
+// yascreen is free software, releasead under the terms of GNU Lesser General Public License v3.0 or later
 // }}}
 
 #ifndef ___YASCREEN_H___
