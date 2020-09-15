@@ -1,3 +1,9 @@
+yascreen (1.80-2) unstable; urgency=medium
+
+  * Indent continuation lines in long description
+
+ -- Boian Bonev <bbonev@ipacct.com>  Tue, 15 Sep 2020 14:00:58 +0000
+
 yascreen (1.80-1) unstable; urgency=medium
 
   * Initial release (Closes: #969927)
