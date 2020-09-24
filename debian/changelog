@@ -1,8 +1,16 @@
 yascreen (1.81-1) unstable; urgency=medium
 
+  * Update to new upstream release of 1.81
+    - relincense under LGPL 3+
+    - remove debian folder from release tarballs (lintian: no-debian-changes)
+    - build only the library by default
+    - include generated yascreen.3 in release tarball to avoid most probably
+      missing/uninstallable go-md2man tool
   * Indent continuation lines in long description
+  * Change release tarballs url in debian/watch
+  * Do not build-dep on go-md2man
 
- -- Boian Bonev <bbonev@ipacct.com>  Tue, 15 Sep 2020 14:00:58 +0000
+ -- Boian Bonev <bbonev@ipacct.com>  Thu, 24 Sep 2020 01:39:45 +0000
 
 yascreen (1.80-1) unstable; urgency=medium
 
