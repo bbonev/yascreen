@@ -125,6 +125,7 @@ mkotar:
 	dh_clean
 	$(MAKE) yascreen.3
 	tar \
+		--xform 's,^[.],yascreen-$(VER),' \
 		--exclude ./.git \
 		--exclude ./.gitignore \
 		--exclude ./.cvsignore \
