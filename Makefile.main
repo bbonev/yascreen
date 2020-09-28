@@ -40,12 +40,12 @@ ifeq ($(lastword $(subst /, ,$(CC))),tcc)
 CCOPT:=-Wall -Wextra -I.
 else
 ifeq ($(lastword $(subst /, ,$(CC))),clang)
-CCOPT:=-Wall -Wextra -I. --std=gnu89
+CCOPT:=-Wall -Wextra -I. --std=gnu89 -fPIC
 else
 ifndef NO_FLTO
-CCOPT:=-Wall -Wextra -I. --std=gnu89 -flto
+CCOPT:=-Wall -Wextra -I. --std=gnu89 -fPIC -flto
 else
-CCOPT:=-Wall -Wextra -I. --std=gnu89
+CCOPT:=-Wall -Wextra -I. --std=gnu89 -fPIC
 endif
 endif
 endif
