@@ -124,7 +124,7 @@ int main(void) {
 				yascreen_term_restore(s);
 				yascreen_free(s);
 
-				printf("sizeof wchar_t: %zd\n",sizeof(wchar_t));
+				printf("sizeof wchar_t: %zu\n",sizeof(wchar_t));
 
 				return 0;
 			default:
