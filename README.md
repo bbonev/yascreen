@@ -1,4 +1,4 @@
-yascreen 3 "September 2020" yascreen "User-Manual"
+YASCREEN 3 "September 30, 2020" yascreen "User-Manual"
 ==================================================
 
 # NAME
