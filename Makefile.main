@@ -34,20 +34,14 @@ INSTALL?=install
 
 VER=$(shell grep Revision yascreen.c|head -n1|sed -e 's/.\+Revision: \([0-9.]\+\) \+.\+/\1/')
 
-# change options based on wild guess of compiler brand/type
+# change options based on flto configuration
 
-ifeq ($(lastword $(subst /, ,$(CC))),tcc)
-CCOPT:=-Wall -Wextra -I.
-else
-ifeq ($(lastword $(subst /, ,$(CC))),clang)
-CCOPT:=-Wall -Wextra -I. --std=gnu89 -fPIC
-else
 ifndef NO_FLTO
 CCOPT:=-Wall -Wextra -I. --std=gnu89 -fPIC -flto
+LDOPT:=-Wl,--version-script,yascreen.vers
 else
 CCOPT:=-Wall -Wextra -I. --std=gnu89 -fPIC
-endif
-endif
+LDOPT:=-Wl,--version-script,yascreen.vers
 endif
 
 ifeq ($(shell uname -s),OpenBSD)
@@ -57,6 +51,7 @@ endif
 AR=ar
 RANLIB=ranlib
 CCOPT:=-Wall -Wextra -I. --std=gnu89
+LDOPT:=
 endif
 
 # shared library version
@@ -67,7 +62,7 @@ SOVERF:=0.0.0
 # allow to pass additional compiler flags
 
 MYCFLAGS=$(DEBUG) $(CPPFLAGS) $(CFLAGS) $(CCOPT)
-MYLDFLAGS=$(LDFLAGS)
+MYLDFLAGS=$(LDFLAGS) $(LDOPT)
 
 all: libyascreen.a libyascreen.so yascreen.pc
 
