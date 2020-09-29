@@ -65,7 +65,7 @@ for (;;) { // main loop
 		newsizey=yascreen_sy(s);
 	}
 
-	...
+	…
 	// option 1
 
 	// input is handled in external event loop and fed to yascreen via yascreen_feed
@@ -77,7 +77,7 @@ for (;;) { // main loop
 		// handle processed keys
 	}
 
-	...
+	…
 	// option 2
 
 	// input is handled by yascreen and key or -1 is returned not longer than TIMEOUT ms
@@ -86,7 +86,7 @@ for (;;) { // main loop
 		// handle processed keys
 	}
 
-	...
+	…
 	// option 3
 
 	// input is handled by yascreen and the following call will block until a key is pressed
@@ -114,7 +114,7 @@ yascreen_set_telnet(s,1); // enable processing of telnet sequences
 yascreen_init_telnet(s); // try to negotiate telnet options (regardless if telnet processing is enabled)
 yascreen_reqsize(s); // request initial screen size
 for (;;) { // main loop
-	...
+	…
 	yascreen_feed(s,c); // feed input from the socket to yascreen
 
 	// keys are processed only when available without delay/blocking
