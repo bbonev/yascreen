@@ -1,4 +1,4 @@
-yascreen (1.81-1) unstable; urgency=medium
+yascreen (1.82-1) unstable; urgency=medium
 
   * Update to new upstream release of 1.81
     - relincense under LGPL 3+
@@ -9,8 +9,13 @@ yascreen (1.81-1) unstable; urgency=medium
   * Indent continuation lines in long description
   * Change release tarballs url in debian/watch
   * Do not build-dep on go-md2man
+  * Update to new upstream release of 1.82
+    - implemented symbol versioning
+    - fixed bug with error handling in out (negative result from write would
+      cause OOB access)
+    - fixed undefined behaviour with void pointer arithmetic
 
- -- Boian Bonev <bbonev@ipacct.com>  Thu, 24 Sep 2020 01:39:45 +0000
+ -- Boian Bonev <bbonev@ipacct.com>  Tue, 29 Sep 2020 00:28:57 +0000
 
 yascreen (1.80-1) unstable; urgency=medium
 
