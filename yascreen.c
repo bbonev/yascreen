@@ -1,4 +1,4 @@
-// $Id: yascreen.c,v 1.82 2020/09/29 21:28:07 bbonev Exp $
+// $Id: yascreen.c,v 1.83 2020/09/30 20:49:18 bbonev Exp $
 //
 // Copyright © 2015-2020 Boian Bonev (bbonev@ipacct.com) {{{
 //
@@ -227,6 +227,8 @@ static inline void outs(yascreen *s,const char *str) { // {{{
 
 	len=strlen(str);
 	o=s->outcb?s->outcb:out;
+	if (!len) // explicit flush
+		o(s,"",0);
 	while (len) {
 		ssize_t r=o(s,str,len);
 
@@ -287,7 +289,7 @@ inline void *yascreen_get_hint_p(yascreen *s) { // {{{
 	return s->phint;
 } // }}}
 
-static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 1.82 $\n\n"; // {{{
+static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 1.83 $\n\n"; // {{{
 // }}}
 
 inline const char *yascreen_ver(void) { // {{{
@@ -629,7 +631,7 @@ static inline int yascreen_update_range(yascreen *s,int y1,int y2) { // {{{
 	if (s->cursor)
 		outf(s,ESC"[%d;%dH",s->cursory+1,s->cursorx+1);
 
-	out(s,"",0); // request a flush
+	outs(s,""); // request a flush
 
 	return ob;
 } // }}}
@@ -1192,7 +1194,7 @@ inline void yascreen_cursor(yascreen *s,int on) { // {{{
 		outs(s,ESC"[?25h"); // show cursor
 	else
 		outs(s,ESC"[?25l"); // hide cursor
-	out(s,"",0); // request a flush
+	outs(s,""); // request a flush
 } // }}}
 
 inline void yascreen_cursor_xy(yascreen *s,int x,int y) { // {{{
@@ -1202,7 +1204,7 @@ inline void yascreen_cursor_xy(yascreen *s,int x,int y) { // {{{
 	s->cursorx=mymin(mymax(x,0),s->sx-1);
 	s->cursory=mymin(mymax(y,0),s->sy-1);
 	outf(s,ESC"[%d;%dH",s->cursory+1,s->cursorx+1);
-	out(s,"",0); // request a flush
+	outs(s,""); // request a flush
 } // }}}
 
 inline void yascreen_altbuf(yascreen *s,int on) { // {{{
@@ -1213,7 +1215,7 @@ inline void yascreen_altbuf(yascreen *s,int on) { // {{{
 		outs(s,ESC"[?1049h"); // go to alternative buffer
 	else
 		outs(s,ESC"[?1049l"); // go back to normal buffer
-	out(s,"",0); // request a flush
+	outs(s,""); // request a flush
 } // }}}
 
 inline void yascreen_clear(yascreen *s) { // {{{
@@ -1221,7 +1223,7 @@ inline void yascreen_clear(yascreen *s) { // {{{
 		return;
 
 	outs(s,ESC"[0m"ESC"[2J"ESC"[H"); // reset attributes, clear screen and reset position
-	out(s,"",0); // request a flush
+	outs(s,""); // request a flush
 } // }}}
 
 inline void yascreen_clearln(yascreen *s) { // {{{
@@ -1229,7 +1231,7 @@ inline void yascreen_clearln(yascreen *s) { // {{{
 		return;
 
 	outs(s,yascreen_clearln_s(s)); // clear line
-	out(s,"",0); // request a flush
+	outs(s,""); // request a flush
 } // }}}
 
 inline void yascreen_term_save(yascreen *s) { // {{{
@@ -1261,7 +1263,7 @@ inline void yascreen_term_restore(yascreen *s) { // {{{
 	if (!s->tssize) // no saved state
 		return;
 
-	out(s,"",0); // request a flush
+	outs(s,""); // request a flush
 	tcsetattr(STDOUT_FILENO,TCSANOW,s->tsstack);
 } // }}}
 
@@ -2063,6 +2065,6 @@ inline void yascreen_getsize(yascreen *s,int *sx,int *sy) { // {{{
 
 inline void yascreen_reqsize(yascreen *s) { // {{{
 	outs(s,ESC"[s"ESC"[999;999H"ESC"[6n"ESC"[u");
-	out(s,"",0); // request a flush
+	outs(s,""); // request a flush
 } // }}}
 
