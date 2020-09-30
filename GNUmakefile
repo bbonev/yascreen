@@ -8,7 +8,7 @@
 #
 # This file is part of yascreen - yet another screen library.
 #
-# yascreen is free software, releasead under the terms of GNU Lesser General Public License v3.0 or later
+# yascreen is free software, released under the terms of GNU Lesser General Public License v3.0 or later
 #
 # }}}
 
