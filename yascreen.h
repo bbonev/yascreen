@@ -1,4 +1,4 @@
-// $Id: yascreen.h,v 1.40 2020/09/15 14:41:20 bbonev Exp $
+// $Id: yascreen.h,v 1.41 2020/09/30 21:34:45 bbonev Exp $
 //
 // Copyright © 2015-2020 Boian Bonev (bbonev@ipacct.com) {{{
 //
@@ -6,7 +6,7 @@
 //
 // This file is part of yascreen - yet another screen library.
 //
-// yascreen is free software, releasead under the terms of GNU Lesser General Public License v3.0 or later
+// yascreen is free software, released under the terms of GNU Lesser General Public License v3.0 or later
 // }}}
 
 #ifndef ___YASCREEN_H___
@@ -380,6 +380,9 @@ inline void yascreen_update_attr(yascreen *s,uint32_t oattr,uint32_t nattr);
 inline int yascreen_print(yascreen *s,const char *format,...) __attribute__((format(printf,2,3)));
 inline int yascreen_write(yascreen *s,const char *str,int len);
 inline int yascreen_puts(yascreen *s,const char *str);
+// set if the above three calls should flush
+inline void yascreen_line_flush(yascreen *s,int on);
+// returns an escape sequence to clear line
 inline const char *yascreen_clearln_s(yascreen *s);
 
 // get current x size
