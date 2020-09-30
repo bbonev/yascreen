@@ -109,7 +109,7 @@ In multiprocess mode daemons where `stdin`/`stdout` are redirected to a socket t
 yascreen *s;
 
 s=yascreen_init(80,25); // there is no guarantee that screen size detection is supported on the remote end
-yascreen_setout(s,ouput_cb); // set callback for output
+yascreen_setout(s,output_cb); // set callback for output
 yascreen_set_telnet(s,1); // enable processing of telnet sequences
 yascreen_init_telnet(s); // try to negotiate telnet options (regardless if telnet processing is enabled)
 yascreen_reqsize(s); // request initial screen size
@@ -176,7 +176,7 @@ Internally style is kept into bitfields in a single integer variable - that incl
 |`YAS_FGXCOLOR(color)` | shift 256 palette color value into foreground color |
 |`YAS_BGXCOLOR(color)` | shift 256 palette color value into background color |
 
-All of the above can be or'ed into attribute, provided that the bits for forground/background color are all zeroes.
+All of the above can be or'ed into attribute, provided that the bits for foreground/background color are all zeroes.
 
 **Key codes**
 
