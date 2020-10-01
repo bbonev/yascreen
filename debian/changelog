@@ -1,6 +1,11 @@
 yascreen (1.84-1) UNRELEASED; urgency=medium
 
   * Update to new upstream release of 1.84
+    - fix some typos
+    - restore compatibility with line apps before output buffering was
+      implemented
+    - add yascreen_line_flush to disable internal flushes
+    - fix flush to be propagated to the external output callback
 
  -- Boian Bonev <bbonev@ipacct.com>  Thu, 01 Oct 2020 00:15:45 +0300
 
