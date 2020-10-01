@@ -1,4 +1,4 @@
-yascreen (1.84-1) UNRELEASED; urgency=medium
+yascreen (1.85-1) UNRELEASED; urgency=medium
 
   * Update to new upstream release of 1.84
     - fix some typos
@@ -6,6 +6,8 @@ yascreen (1.84-1) UNRELEASED; urgency=medium
       implemented
     - add yascreen_line_flush to disable internal flushes
     - fix flush to be propagated to the external output callback
+  * Update to new upstream release of 1.85
+    - fix gcc10 warning on 32bit architectures
 
  -- Boian Bonev <bbonev@ipacct.com>  Thu, 01 Oct 2020 00:15:45 +0300
 
