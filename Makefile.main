@@ -26,13 +26,12 @@ DEBUG?=-O3
 
 # make defines AR, so we have to override to gcc-ar, so -flto works
 AR=gcc-ar
-STRIP?=strip
 RANLIB?=gcc-ranlib
 INSTALL?=install
 
 ########################## end of configurable section #########################
 
-VER=$(shell grep Revision yascreen.c|head -n1|sed -e 's/.\+Revision: \([0-9.]\+\) \+.\+/\1/')
+VER=$(shell grep Revision yascreen.c|head -n1|sed -e 's/.\+Revision: \([0-9.]\+\) \+.\+/\1/'|tr . ' '|awk '{printf "%i.%02u\n",$$1+$$2/100,$$2%100}')
 
 # change options based on flto configuration
 
@@ -100,13 +99,13 @@ yascreen.pc: yascreen.pc.in
 	< $< > $@
 
 install: libyascreen.a libyascreen.so yascreen.pc yascreen.3
-	$(INSTALL) -D -m 644 -t $(DESTDIR)$(PREFIX)$(LIBDIR) libyascreen.a
-	$(INSTALL) -D -m 644 -t $(DESTDIR)$(PREFIX)$(LIBDIR)/pkgconfig/ yascreen.pc
+	$(INSTALL) -Ds -m 644 -t $(DESTDIR)$(PREFIX)$(LIBDIR) libyascreen.a
+	$(INSTALL) -Ds -m 644 -t $(DESTDIR)$(PREFIX)$(LIBDIR)/pkgconfig/ yascreen.pc
 	ln -fs libyascreen.so.$(SOVERF) $(DESTDIR)$(PREFIX)$(LIBDIR)libyascreen.so.$(SOVERM)
 	ln -fs libyascreen.so.$(SOVERM) $(DESTDIR)$(PREFIX)$(LIBDIR)libyascreen.so
-	$(INSTALL) -D -m 644 -s -t $(DESTDIR)$(PREFIX)$(LIBDIR) libyascreen.so.$(SOVERF)
-	$(INSTALL) -D -m 644 -t $(DESTDIR)$(PREFIX)$(INCDIR) yascreen.h
-	$(INSTALL) -TD -m 0644 yascreen.3 $(DESTDIR)$(PREFIX)/share/man/man3/yascreen.3
+	$(INSTALL) -Ds -m 644 -s -t $(DESTDIR)$(PREFIX)$(LIBDIR) libyascreen.so.$(SOVERF)
+	$(INSTALL) -Ds -m 644 -t $(DESTDIR)$(PREFIX)$(INCDIR) yascreen.h
+	$(INSTALL) -TDs -m 0644 yascreen.3 $(DESTDIR)$(PREFIX)/share/man/man3/yascreen.3
 
 clean:
 	rm -f yastest yastest.shared yastest.o yascreen.o libyascreen.a libyascreen.so libyascreen.so.$(SOVERM) libyascreen.so.$(SOVERF) yascreen.pc
