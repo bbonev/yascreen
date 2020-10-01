@@ -1,4 +1,4 @@
-// $Id: yascreen.c,v 1.84 2020/09/30 21:36:38 bbonev Exp $
+// $Id: yascreen.c,v 1.85 2020/10/01 03:48:48 bbonev Exp $
 //
 // Copyright © 2015-2020 Boian Bonev (bbonev@ipacct.com) {{{
 //
@@ -290,7 +290,7 @@ inline void *yascreen_get_hint_p(yascreen *s) { // {{{
 	return s->phint;
 } // }}}
 
-static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 1.84 $\n\n"; // {{{
+static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 1.85 $\n\n"; // {{{
 // }}}
 
 inline const char *yascreen_ver(void) { // {{{
@@ -741,7 +741,7 @@ static inline void yascreen_putcw(yascreen *s,uint32_t attr,const char *str,int 
 				return; // nothing more we could do
 			}
 			strcpy(ts,(s->mem[s->cursorx+s->cursory*s->sx].style&YAS_STORAGE)?s->mem[s->cursorx+s->cursory*s->sx].p:s->mem[s->cursorx+s->cursory*s->sx].d);
-			strncpy(ts+clen,str,tslen-clen);
+			strcat(ts,str);
 			if (s->mem[s->cursorx+s->cursory*s->sx].style&YAS_STORAGE)
 				free(s->mem[s->cursorx+s->cursory*s->sx].p);
 			s->mem[s->cursorx+s->cursory*s->sx].p=ts;
