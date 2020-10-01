@@ -112,7 +112,7 @@ clean:
 
 rebuild:
 	$(MAKE) clean
-	$(MAKE) all
+	$(MAKE) -j all
 
 mkotar:
 	$(MAKE) clean
