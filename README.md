@@ -43,7 +43,7 @@ For terminal use signal handling (`SIGWINCH`) should always be handled by the ap
 ## Example initialization for terminal and handling of SIGWINCH
 
 
-```
+```c
 yascreen *s;
 int winch=0;
 
@@ -105,7 +105,7 @@ In multiprocess mode daemons where `stdin`/`stdout` are redirected to a socket t
 ## Example initialization for socket with external event loop and telnet sequences processing
 
 
-```
+```c
 yascreen *s;
 
 s=yascreen_init(80,25); // there is no guarantee that screen size detection is supported on the remote end
