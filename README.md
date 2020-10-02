@@ -464,7 +464,10 @@ The library is thread safe, as long as each `struct yascreen` object is accessed
 
 
 
-### `inline yascreen *yascreen_init(int sx,int sy);`
+### yascreen\_init
+```c
+inline yascreen *yascreen_init(int sx,int sy);
+```
 
 allocate and initialize screen data
 output defaults to stdout
@@ -472,52 +475,85 @@ in case output is a terminal and initial size is (0,0), the screen size is autod
 
 in case of error, returns `NULL`
 
-### `inline const char *yascreen_ver(void);`
+### yascreen\_ver
+```c
+inline const char *yascreen_ver(void);
+```
 
 returns a string with the library version
 
-### `inline int yascreen_setout(yascreen *s,ssize_t (*out)(yascreen *s,const void *data,size_t len));`
+### yascreen\_setout
+```c
+inline int yascreen_setout(yascreen *s,ssize_t (*out)(yascreen *s,const void *data,size_t len));
+```
 
 set callback that handles output
 if out=NULL, the output goes to `stdout`
 
 the callback may implement internal buffering, a flush is signalled by calling `out` with len=0
 
-### `inline void yascreen_set_telnet(yascreen *s,int on);`
+### yascreen\_set\_telnet
+```c
+inline void yascreen_set_telnet(yascreen *s,int on);
+```
 
 enable (on is non-zero) or disable (on=0) telnet sequence processing
 
-### `inline void yascreen_init_telnet(yascreen *s);`
+### yascreen\_init\_telnet
+```c
+inline void yascreen_init_telnet(yascreen *s);
+```
 
 depending on telnet sequence processing, sends a set of telnet initialization sequences
 
-### `inline int yascreen_resize(yascreen *s,int sx,int sy);`
+### yascreen\_resize
+```c
+inline int yascreen_resize(yascreen *s,int sx,int sy);
+```
 
 resize screen
 should redraw afterwards
 since allocation is involved, this may fail and return -1
 
-### `inline void yascreen_free(yascreen *s);`
+### yascreen\_free
+```c
+inline void yascreen_free(yascreen *s);
+```
 
 finish the lifecycle of `struct yascreen` - all internally allocated memory is freed
 
-### `inline void yascreen_term_save(yascreen *s);`
+### yascreen\_term\_save
+```c
+inline void yascreen_term_save(yascreen *s);
+```
 
 save current terminal state on top of state stack
 
-### `inline void yascreen_term_restore(yascreen *s);`
+### yascreen\_term\_restore
+```c
+inline void yascreen_term_restore(yascreen *s);
+```
 
 restore previously saved terminal state from top of state stack
 
-### `inline void yascreen_term_push(yascreen *s);`
+### yascreen\_term\_push
+```c
+inline void yascreen_term_push(yascreen *s);
+```
 
 push current terminal state to state stack
 
-### `inline void yascreen_term_pop(yascreen *s);`
+### yascreen\_term\_pop
+```c
+inline void yascreen_term_pop(yascreen *s);
+```
 
 pop and restore previously saved terminal state from state stack
 
-### `inline void yascreen_term_set(yascreen *s,int mode);`
+### yascreen\_term\_set
+```c
+inline void yascreen_term_set(yascreen *s,int mode);
+```
 
 set terminal for proper screen operation
 
@@ -530,148 +566,259 @@ set terminal for proper screen operation
 | `YAS_NOECHO`     |     4 | disable local echo (`ECHO`) |
 | `YAS_ONLCR`      |     8 | `ONLCR`\|`OPOST` |
 
-### `inline int yascreen_printxy(yascreen *s,int x,int y,uint32_t attr,const char *format,...) __attribute__((format(printf,5,6)));`
-### `inline int yascreen_putsxy(yascreen *s,int x,int y,uint32_t attr,const char *str);`
+### yascreen\_printxy
+```c
+inline int yascreen_printxy(yascreen *s,int x,int y,uint32_t attr,const char *format,...) __attribute__((format(printf,5,6)));
+```
+### yascreen\_putsxy
+```c
+inline int yascreen_putsxy(yascreen *s,int x,int y,uint32_t attr,const char *str);
+```
 
 print at position, if data exceeds buffer, then it gets truncated
 
-### `inline int yascreen_printxyu(yascreen *s,int x,int y,uint32_t attr,const char *format,...) __attribute__((format(printf,5,6)));`
-### `inline int yascreen_putsxyu(yascreen *s,int x,int y,uint32_t attr,const char *str);`
+### yascreen\_printxyu
+```c
+inline int yascreen_printxyu(yascreen *s,int x,int y,uint32_t attr,const char *format,...) __attribute__((format(printf,5,6)));
+```
+### yascreen\_putsxyu
+```c
+inline int yascreen_putsxyu(yascreen *s,int x,int y,uint32_t attr,const char *str);
+```
 
 print at position, if data exceeds buffer, then it gets truncated
 screen is immediately updated
 
-### `inline int yascreen_update(yascreen *s);`
+### yascreen\_update
+```c
+inline int yascreen_update(yascreen *s);
+```
 
 sync memory state to screen
 since allocation is involved, this may fail and return -1
 
-### `inline void yascreen_redraw(yascreen *s);`
+### yascreen\_redraw
+```c
+inline void yascreen_redraw(yascreen *s);
+```
 
 set next update to be a full redraw
 
-### `inline void yascreen_clear_mem(yascreen *s,uint32_t attr);`
+### yascreen\_clear\_mem
+```c
+inline void yascreen_clear_mem(yascreen *s,uint32_t attr);
+```
 
 clear memory buffer
 all cells in the screen are set to `Space`, using `attr` for colors and style
 
-### `inline void yascreen_cursor(yascreen *s,int on);`
+### yascreen\_cursor
+```c
+inline void yascreen_cursor(yascreen *s,int on);
+```
 
 hide (`on`=0) or show (`on` is non-zero) cusror
 screen is updated immediately
 
-### `inline void yascreen_cursor_xy(yascreen *s,int x,int y);`
+### yascreen\_cursor\_xy
+```c
+inline void yascreen_cursor_xy(yascreen *s,int x,int y);
+```
 
 set cursor position
 screen is updated immediately
 
-### `inline void yascreen_altbuf(yascreen *s,int on);`
+### yascreen\_altbuf
+```c
+inline void yascreen_altbuf(yascreen *s,int on);
+```
 
 switch between regular and alternative buffer
 screen is updated immediately
 
-### `inline void yascreen_clear(yascreen *s);`
+### yascreen\_clear
+```c
+inline void yascreen_clear(yascreen *s);
+```
 
 clear real screen, no change to memory buffers
 
-### `inline void yascreen_clearln(yascreen *s);`
+### yascreen\_clearln
+```c
+inline void yascreen_clearln(yascreen *s);
+```
 
 clear current line, no change to memory buffers
 
-### `inline void yascreen_update_attr(yascreen *s,uint32_t oattr,uint32_t nattr);`
+### yascreen\_update\_attr
+```c
+inline void yascreen_update_attr(yascreen *s,uint32_t oattr,uint32_t nattr);
+```
 
 apply difference between two attrs and output the optimized ANSI sequence to switch from `oattr` to `nattr`
 if `oattr`=0xffffffff, the full ANSI sequence will be generated
 no change to memory buffers
 
-### `yascreen_set_attr(s,attr)`
+### yascreen\_set\_attr
+```c
+yascreen_set_attr(s,attr)
+```
 
 reset all attrs and set specific one (`attr`)
 
-### `inline int yascreen_print(yascreen *s,const char *format,...) __attribute__((format(printf,2,3)));`
-### `inline int yascreen_write(yascreen *s,const char *str,int len);`
-### `inline int yascreen_puts(yascreen *s,const char *str);`
-### `inline const char *yascreen_clearln_s(yascreen *s);`
+### yascreen\_print
+```c
+inline int yascreen_print(yascreen *s,const char *format,...) __attribute__((format(printf,2,3)));
+```
+### yascreen\_write
+```c
+inline int yascreen_write(yascreen *s,const char *str,int len);
+```
+### yascreen\_puts
+```c
+inline int yascreen_puts(yascreen *s,const char *str);
+```
+### yascreen\_clearln\_s
+```c
+inline const char *yascreen_clearln_s(yascreen *s);
+```
 
 print in line mode
 
-### `inline int yascreen_sx(yascreen *s);`
+### yascreen\_sx
+```c
+inline int yascreen_sx(yascreen *s);
+```
 
 get current x size
 
-### `inline int yascreen_sy(yascreen *s);`
+### yascreen\_sy
+```c
+inline int yascreen_sy(yascreen *s);
+```
 
 get current y size
 
-### `inline int yascreen_x(yascreen *s);`
+### yascreen\_x
+```c
+inline int yascreen_x(yascreen *s);
+```
 
 get current x
 
-### `inline int yascreen_y(yascreen *s);`
+### yascreen\_y
+```c
+inline int yascreen_y(yascreen *s);
+```
 
 get current y
 
-### `inline void yascreen_esc_to(yascreen *s,int timeout);`
+### yascreen\_esc\_to
+```c
+inline void yascreen_esc_to(yascreen *s,int timeout);
+```
 
 set timeout for single ESC key press
 
-### `inline void yascreen_ckto(yascreen *s);`
+### yascreen\_ckto
+```c
+inline void yascreen_ckto(yascreen *s);
+```
 
 in case of external event loop, this call will check for single ESC key
 should be called regularly enough so that the above specified timeout is not extended too much
 if not called often enough then single ESC will be yielded after longer timeout
 if not called at all then single ESC will be yielded with next key press
 
-### `inline int yascreen_getch_to(yascreen *s,int timeout);`
+### yascreen\_getch\_to
+```c
+inline int yascreen_getch_to(yascreen *s,int timeout);
+```
 
 wait for a key, return ASCII or extended keycode, wait no more than timeout in milliseconds
 
-### `yascreen_getch(s)`
+### yascreen\_getch
+```c
+yascreen_getch(s)
+```
 
 get a key without timeout
-this calls `yascreen_getch_to(s,0)`
+this macro expands to `yascreen_getch_to(s,0)`
 zero timeout=wait forever
 
-### `yascreen_getch_nowait(s)`
+### yascreen\_getch\_nowait
+```c
+yascreen_getch_nowait(s)
+```
 
 get a key, if available, return immediately
-this calls `yascreen_getch_to(s,-1)`
+this macro expands to `yascreen_getch_to(s,-1)`
 negative timeout=do not wait
 
-### `inline void yascreen_ungetch(yascreen *s,int key);`
+### yascreen\_ungetch
+```c
+inline void yascreen_ungetch(yascreen *s,int key);
+```
 
 put back key value in key buffer
 the internal key buffer is dynamically allocated, hence there is no limit of how many key codes may be put back, but in case of memory allocation failure, the error will not be reported and the key will not be put into the buffer
 
-### `inline void yascreen_pushch(yascreen *s,int key);`
+### yascreen\_pushch
+```c
+inline void yascreen_pushch(yascreen *s,int key);
+```
 
 push key value at end of key buffer
 similar to `yascreen_ungetch` but the `key` code will be returned after all other key codes currently in the buffer
 the internal key buffer is dynamically allocated, hence there is no limit of how many key codes may be put back, but in case of memory allocation failure, the error will not be reported and the key will not be put into the buffer
 
-### `inline void yascreen_feed(yascreen *s,unsigned char c);`
+### yascreen\_feed
+```c
+inline void yascreen_feed(yascreen *s,unsigned char c);
+```
 
 feed key sequence state machine with byte stream
 this is useful to implement external event loop and read key codes by `yascreen_getch_nowait` until it returns -1
 
-### `inline int yascreen_peekch(yascreen *s);`
+### yascreen\_peekch
+```c
+inline int yascreen_peekch(yascreen *s);
+```
 
 peek for key without removing it from input queue
 
-### `inline void yascreen_getsize(yascreen *s,int *sx,int *sy);`
+### yascreen\_getsize
+```c
+inline void yascreen_getsize(yascreen *s,int *sx,int *sy);
+```
 
 get last reported screen size
 set both to 0 if there is none
 this will yield valid result after `YAS_SCREEN_SIZE` is returned as keypress
 
-### `inline void yascreen_reqsize(yascreen *s);`
+### yascreen\_reqsize
+```c
+inline void yascreen_reqsize(yascreen *s);
+```
 
 request terminal to report its size via ANSI sequence
 
-### `inline void yascreen_set_hint_i(yascreen *s,int hint);`
-### `inline int yascreen_get_hint_i(yascreen *s);`
-### `inline void yascreen_set_hint_p(yascreen *s,void *hint);`
-### `inline void *yascreen_get_hint_p(yascreen *s);`
+### yascreen\_set\_hint\_i
+```c
+inline void yascreen_set_hint_i(yascreen *s,int hint);
+```
+### yascreen\_get\_hint\_i
+```c
+inline int yascreen_get_hint_i(yascreen *s);
+```
+### yascreen\_set\_hint\_p
+```c
+inline void yascreen_set_hint_p(yascreen *s,void *hint);
+```
+### yascreen\_get\_hint\_p
+```c
+inline void *yascreen_get_hint_p(yascreen *s);
+```
 
 get/set opaque hint values
 integer and pointer hints are stored separately and both can be used at the same time
@@ -679,3 +826,20 @@ integer and pointer hints are stored separately and both can be used at the same
 these are useful to link the `yascreen` instance to user program data
 
 for example a single output callback may output to socket or a terminal, depending on the hint values
+
+### yascreen\_line\_flush
+```c
+inline void yascreen_line_flush(yascreen *s,int on);
+```
+
+enable/disable auto flush for line and direct screen oriented operations
+
+yascreen versions before 1.77 didn't use buffered ouput and would immediately send the output to the screen
+
+disabling internal flush can help an application optimize the number of `write` calls at the cost of performing explicit flush after each group of operations
+
+explicit flush example:
+
+```c
+yascreen_write(s,"",0);
+```
