@@ -834,7 +834,7 @@ inline void yascreen_line_flush(yascreen *s,int on);
 
 enable/disable auto flush for line and direct screen oriented operations
 
-yascreen versions before 1.77 didn't use buffered ouput and would immediately send the output to the screen
+yascreen versions before 1.77 didn't use buffered output and would immediately send the output to the screen
 
 disabling internal flush can help an application optimize the number of `write` calls at the cost of performing explicit flush after each group of operations
 
