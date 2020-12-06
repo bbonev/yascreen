@@ -55,7 +55,7 @@ compile applications or shared objects that use yascreen.
 %build
 %set_build_flags
 export CFLAGS="${RPM_OPT_FLAGS}"
-NO_FLTO=1 DEBUG="" %make_build
+NO_FLTO=1 DEBUG="" %make_build PREFIX=%{_prefix} LIBDIR=/%{_lib}/
 
 %install
 %make_install INSTALL+=" --strip-program=true" PREFIX=%{_prefix} LIBDIR=/%{_lib}/
