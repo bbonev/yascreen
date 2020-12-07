@@ -42,14 +42,12 @@ Requires:       %{name}%{?_isa} = %{version}-%{release}
 %description devel
 
 This package contains the header files and libraries needed to
-
 compile applications or shared objects that use yascreen.
 
 %global _hardened_build 1
 
 %prep
 %{gpgverify} --keyring='%{SOURCE2}' --signature='%{SOURCE1}' --data='%{SOURCE0}'
-#% autosetup -n yascreen-% {version}
 %autosetup
 
 %build
@@ -64,6 +62,7 @@ chmod +x $RPM_BUILD_ROOT%{_libdir}/libyascreen.so.0.0.0
 # remove unpackaged static library
 rm -f $RPM_BUILD_ROOT%{_libdir}/libyascreen.a
 
+# to remove after EPEL7 becomes obsolete
 %ldconfig_scriptlets
 
 %files
