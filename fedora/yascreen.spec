@@ -5,8 +5,8 @@ Summary:        Yet Another Screen Library (lib(n)curses alternative)
 
 License:        LGPLv3
 URL:            https://github.com/bbonev/yascreen/
-Source0:        https://github.com/bbonev/yascreen/releases/download/v%{version}/yascreen-%{version}.tar.xz
-Source1:        https://github.com/bbonev/yascreen/releases/download/v%{version}/yascreen-%{version}.tar.xz.asc
+Source0:        %{url}releases/download/v%{version}/yascreen-%{version}.tar.xz
+Source1:        %{url}releases/download/v%{version}/yascreen-%{version}.tar.xz.asc
 Source2:        https://raw.githubusercontent.com/bbonev/yascreen/master/debian/upstream/signing-key.asc
 
 BuildRequires:  gcc
@@ -61,9 +61,6 @@ NO_FLTO=1 DEBUG="" %make_build PREFIX=%{_prefix} LIBDIR=/%{_lib}/
 chmod +x $RPM_BUILD_ROOT%{_libdir}/libyascreen.so.0.0.0
 # remove unpackaged static library
 rm -f $RPM_BUILD_ROOT%{_libdir}/libyascreen.a
-
-# to remove after EPEL7 becomes obsolete
-%ldconfig_scriptlets
 
 %files
 %license LICENSE
