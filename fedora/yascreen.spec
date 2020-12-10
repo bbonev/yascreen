@@ -1,6 +1,6 @@
 Name:           yascreen
 Version:        1.85
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        Yet Another Screen Library (lib(n)curses alternative)
 
 License:        LGPLv3
