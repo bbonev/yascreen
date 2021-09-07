@@ -1,4 +1,4 @@
-// $Id: yascreen.c,v 1.85 2020/10/01 03:48:48 bbonev Exp $
+// $Id: yascreen.c,v 1.86 2021/09/07 04:13:16 bbonev Exp $
 //
 // Copyright © 2015-2020 Boian Bonev (bbonev@ipacct.com) {{{
 //
@@ -290,7 +290,7 @@ inline void *yascreen_get_hint_p(yascreen *s) { // {{{
 	return s->phint;
 } // }}}
 
-static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 1.85 $\n\n"; // {{{
+static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 1.86 $\n\n"; // {{{
 // }}}
 
 inline const char *yascreen_ver(void) { // {{{
@@ -529,11 +529,11 @@ inline void yascreen_update_attr(yascreen *s,uint32_t oattr,uint32_t nattr) { //
 
 	if (oattr==0xffffffff) {
 		oattr=~nattr; // force setting all
-		outs(s,ESC"0m");
+		outs(s,ESC"[0m");
 	}
 
 	if ((oattr&YAS_BOLD)!=(nattr&YAS_BOLD))
-		outs(s,(nattr&YAS_BOLD)?ESC"[1m":ESC"[21m");
+		outs(s,(nattr&YAS_BOLD)?ESC"[1m":ESC"[22m");
 	if ((oattr&YAS_ITALIC)!=(nattr&YAS_ITALIC))
 		outs(s,(nattr&YAS_ITALIC)?ESC"[3m":ESC"[23m");
 	if ((oattr&YAS_UNDERL)!=(nattr&YAS_UNDERL))
