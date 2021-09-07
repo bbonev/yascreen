@@ -133,7 +133,6 @@ mkotar:
 		--exclude ./.cvsignore \
 		--exclude ./CVS \
 		--exclude ./debian \
-		--exclude ./fedora \
 		-Jcvf ../yascreen_$(VER).orig.tar.xz .
 	-rm -f ../yascreen_$(VER).orig.tar.xz.asc
 	gpg -a --detach-sign ../yascreen_$(VER).orig.tar.xz

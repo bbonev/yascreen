@@ -1,6 +1,6 @@
 Name:           yascreen
-Version:        1.85
-Release:        2%{?dist}
+Version:        1.86
+Release:        1%{?dist}
 Summary:        Yet Another Screen Library (lib(n)curses alternative)
 
 License:        LGPLv3
@@ -74,5 +74,8 @@ rm -f $RPM_BUILD_ROOT%{_libdir}/libyascreen.a
 %{_includedir}/yascreen.h
 
 %changelog
+* Tue Sep 7 2021 Boian Bonev <bbonev@ipacct.com> - 1.86-1
+- Update to latest ver 1.86
+
 * Sun Dec 6 2020 Boian Bonev <bbonev@ipacct.com> - 1.85-1
 - Initial packaging for Fedora
