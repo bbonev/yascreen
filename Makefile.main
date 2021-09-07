@@ -33,6 +33,11 @@ INSTALL?=install
 
 VER=$(shell grep Revision yascreen.c|head -n1|sed -e 's/.\+Revision: \([0-9.]\+\) \+.\+/\1/'|tr . ' '|awk '{printf "%i.%02u\n",$$1+$$2/100,$$2%100}')
 
+# shared library version
+
+SOVERM:=0
+SOVERF:=0.0.0
+
 # change options based on flto configuration
 
 ifndef NO_FLTO
@@ -60,11 +65,6 @@ RANLIB=ranlib
 CCOPT:=-Wall -Wextra -I. --std=gnu89
 LDOPT:=
 endif
-
-# shared library version
-
-SOVERM:=0
-SOVERF:=0.0.0
 
 # allow to pass additional compiler flags
 
