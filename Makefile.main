@@ -37,10 +37,18 @@ VER=$(shell grep Revision yascreen.c|head -n1|sed -e 's/.\+Revision: \([0-9.]\+\
 
 ifndef NO_FLTO
 CCOPT:=-Wall -Wextra -I. --std=gnu89 -fPIC -flto
-LDOPT:=-Wl,--version-script,yascreen.vers
 else
 CCOPT:=-Wall -Wextra -I. --std=gnu89 -fPIC
+endif
+
 LDOPT:=-Wl,--version-script,yascreen.vers
+SONAME:=-Wl,-soname,libyascreen.so.$(SOVERM)
+
+ifeq ($(shell uname -s),Darwin)
+AR=ar
+RANLIB=ranlib
+LDOPT:=
+SONAME:=
 endif
 
 ifeq ($(shell uname -s),OpenBSD)
@@ -88,7 +96,7 @@ libyascreen.so.$(SOVERM): libyascreen.so.$(SOVERF)
 	ln -fs $^ $@
 
 libyascreen.so.$(SOVERF): yascreen.o
-	$(CC) $(MYCFLAGS) $(MYLDFLAGS) -o $@ $< -fPIC -shared -Wl,-soname,libyascreen.so.$(SOVERM)
+	$(CC) $(MYCFLAGS) $(MYLDFLAGS) -o $@ $< -fPIC -shared $(SONAME)
 
 yascreen.pc: yascreen.pc.in
 	sed \
