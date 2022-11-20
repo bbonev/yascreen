@@ -391,6 +391,10 @@ All of the above can be or'ed into attribute, provided that the bits for foregro
 | `YAS_K_C_UP`     | 0x13b | Ctrl-Up |
 | `YAS_K_C_DOWN`   | 0x13c | Ctrl-Down |
 | `YAS_K_C_RIGHT`  | 0x13d | Ctrl-Right |
+| `YAS_K_S_LEFT`   | 0x13e | Shift-Left |
+| `YAS_K_S_UP`     | 0x13f | Shift-Up |
+| `YAS_K_S_DOWN`   | 0x140 | Shift-Down |
+| `YAS_K_S_RIGHT`  | 0x141 | Shift-Right |
 
 - Alt-<letter>
 
