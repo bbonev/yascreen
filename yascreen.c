@@ -1,4 +1,4 @@
-// $Id: yascreen.c,v 1.86 2021/09/07 04:13:16 bbonev Exp $
+// $Id: yascreen.c,v 1.88 2022/11/20 20:17:17 bbonev Exp $
 //
 // Copyright © 2015-2020 Boian Bonev (bbonev@ipacct.com) {{{
 //
@@ -290,7 +290,7 @@ inline void *yascreen_get_hint_p(yascreen *s) { // {{{
 	return s->phint;
 } // }}}
 
-static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 1.86 $\n\n"; // {{{
+static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 1.88 $\n\n"; // {{{
 // }}}
 
 inline const char *yascreen_ver(void) { // {{{
@@ -1851,12 +1851,38 @@ inline void yascreen_feed(yascreen *s,unsigned char c) { // {{{
 							yascreen_pushch(s,YAS_K_F7);
 						if (s->ansipos==5&&s->ansibuf[2]=='1'&&s->ansibuf[3]=='9') // F8 - \e[19~
 							yascreen_pushch(s,YAS_K_F8);
+						if (s->ansipos==5&&s->ansibuf[2]=='2'&&s->ansibuf[3]=='0') // F9 - \e[20~
+							yascreen_pushch(s,YAS_K_F9);
 						if (s->ansipos==5&&s->ansibuf[2]=='2'&&s->ansibuf[3]=='1') // F10 - \e[21~
 							yascreen_pushch(s,YAS_K_F10);
 						if (s->ansipos==5&&s->ansibuf[2]=='2'&&s->ansibuf[3]=='3') // F11 - \e[23~
 							yascreen_pushch(s,YAS_K_F11);
 						if (s->ansipos==5&&s->ansibuf[2]=='2'&&s->ansibuf[3]=='4') // F12 - \e[24~
 							yascreen_pushch(s,YAS_K_F12);
+						if (s->ansipos==7&&s->ansibuf[2]=='1'&&s->ansibuf[3]=='1'&&s->ansibuf[4]==';'&&s->ansibuf[5]=='2') // shift-F1 \e[11;2~
+							yascreen_pushch(s,YAS_K_S_F1);
+						if (s->ansipos==7&&s->ansibuf[2]=='1'&&s->ansibuf[3]=='2'&&s->ansibuf[4]==';'&&s->ansibuf[5]=='2') // shift-F2 \e[12;2~
+							yascreen_pushch(s,YAS_K_S_F2);
+						if (s->ansipos==7&&s->ansibuf[2]=='1'&&s->ansibuf[3]=='3'&&s->ansibuf[4]==';'&&s->ansibuf[5]=='2') // shift-F3 \e[13;2~
+							yascreen_pushch(s,YAS_K_S_F3);
+						if (s->ansipos==7&&s->ansibuf[2]=='1'&&s->ansibuf[3]=='4'&&s->ansibuf[4]==';'&&s->ansibuf[5]=='2') // shift-F4 \e[14;2~
+							yascreen_pushch(s,YAS_K_S_F4);
+						if (s->ansipos==7&&s->ansibuf[2]=='1'&&s->ansibuf[3]=='5'&&s->ansibuf[4]==';'&&s->ansibuf[5]=='2') // shift-F5 \e[15;2~
+							yascreen_pushch(s,YAS_K_S_F5);
+						if (s->ansipos==7&&s->ansibuf[2]=='1'&&s->ansibuf[3]=='7'&&s->ansibuf[4]==';'&&s->ansibuf[5]=='2') // shift-F6 \e[17;2~
+							yascreen_pushch(s,YAS_K_S_F6);
+						if (s->ansipos==7&&s->ansibuf[2]=='1'&&s->ansibuf[3]=='8'&&s->ansibuf[4]==';'&&s->ansibuf[5]=='2') // shift-F7 \e[18;2~
+							yascreen_pushch(s,YAS_K_S_F7);
+						if (s->ansipos==7&&s->ansibuf[2]=='1'&&s->ansibuf[3]=='9'&&s->ansibuf[4]==';'&&s->ansibuf[5]=='2') // shift-F8 \e[19;2~
+							yascreen_pushch(s,YAS_K_S_F8);
+						if (s->ansipos==7&&s->ansibuf[2]=='2'&&s->ansibuf[3]=='0'&&s->ansibuf[4]==';'&&s->ansibuf[5]=='2') // shift-F9 \e[20;2~
+							yascreen_pushch(s,YAS_K_S_F9);
+						if (s->ansipos==7&&s->ansibuf[2]=='2'&&s->ansibuf[3]=='1'&&s->ansibuf[4]==';'&&s->ansibuf[5]=='2') // shift-F10 \e[21;2~
+							yascreen_pushch(s,YAS_K_S_F10);
+						if (s->ansipos==7&&s->ansibuf[2]=='2'&&s->ansibuf[3]=='3'&&s->ansibuf[4]==';'&&s->ansibuf[5]=='2') // shift-F11 \e[23;2~
+							yascreen_pushch(s,YAS_K_S_F11);
+						if (s->ansipos==7&&s->ansibuf[2]=='2'&&s->ansibuf[3]=='4'&&s->ansibuf[4]==';'&&s->ansibuf[5]=='2') // shift-F12 \e[24;2~
+							yascreen_pushch(s,YAS_K_S_F12);
 						if (s->ansipos==4&&s->ansibuf[2]=='2') // insert - \e[2~
 							yascreen_pushch(s,YAS_K_INS);
 						if (s->ansipos==4&&s->ansibuf[2]=='3') // delete - \e[3~
@@ -1870,7 +1896,15 @@ inline void yascreen_feed(yascreen *s,unsigned char c) { // {{{
 						if (s->ansipos==4&&(s->ansibuf[2]=='4'||s->ansibuf[2]=='8')) // end - \e[4~ \e[8~
 							yascreen_pushch(s,YAS_K_END);
 						break;
-					case 'R': { // \e[n;mR - cursor position report
+					case 'P': // \e[1;2P - shift-F1
+						if (s->ansipos==6&&s->ansibuf[2]=='1'&&s->ansibuf[3]==';'&&s->ansibuf[4]=='2') // shift-F1 - \e[1;2P
+							yascreen_pushch(s,YAS_K_S_F1);
+						break;
+					case 'Q': // \e[1;2Q - shift-F2
+						if (s->ansipos==6&&s->ansibuf[2]=='1'&&s->ansibuf[3]==';'&&s->ansibuf[4]=='2') // shift-F2 - \e[1;2Q
+							yascreen_pushch(s,YAS_K_S_F2);
+						break;
+					case 'R': { // \e[n;mR - cursor position report, used for screen size detection
 						int sx,sy;
 
 						sscanf((char *)s->ansibuf+2,"%d;%dR",&sy,&sx);
@@ -1879,24 +1913,37 @@ inline void yascreen_feed(yascreen *s,unsigned char c) { // {{{
 							s->scry=sy;
 							s->haveansi=1;
 							yascreen_pushch(s,YAS_SCREEN_SIZE);
-						}
+						} else if (!strcmp((char *)s->ansibuf+2,"1;2R")) // shift-F3 - \e[1;2R
+							yascreen_pushch(s,YAS_K_S_F3);
 						break;
 					}
-					case 'A': // ^up - \e[1;5A
-						if (s->ansipos==6&&s->ansibuf[2]=='1'&&s->ansibuf[3]==';'&&s->ansibuf[4]=='5')
+					case 'S': // \e[1;2S - shift-F4
+						if (s->ansipos==6&&s->ansibuf[2]=='1'&&s->ansibuf[3]==';'&&s->ansibuf[4]=='2') // shift-F4 - \e[1;2S
+							yascreen_pushch(s,YAS_K_S_F4);
+						break;
+					case 'A':
+						if (s->ansipos==6&&s->ansibuf[2]=='1'&&s->ansibuf[3]==';'&&s->ansibuf[4]=='5') // ^up - \e[1;5A
 							yascreen_pushch(s,YAS_K_C_UP);
+						if (s->ansipos==6&&s->ansibuf[2]=='1'&&s->ansibuf[3]==';'&&s->ansibuf[4]=='2') // shift-up - \e[1;2A
+							yascreen_pushch(s,YAS_K_S_UP);
 						break;
-					case 'B': // ^down - \e[1;5B
-						if (s->ansipos==6&&s->ansibuf[2]=='1'&&s->ansibuf[3]==';'&&s->ansibuf[4]=='5')
+					case 'B':
+						if (s->ansipos==6&&s->ansibuf[2]=='1'&&s->ansibuf[3]==';'&&s->ansibuf[4]=='5') // ^down - \e[1;5B
 							yascreen_pushch(s,YAS_K_C_DOWN);
+						if (s->ansipos==6&&s->ansibuf[2]=='1'&&s->ansibuf[3]==';'&&s->ansibuf[4]=='2') // shift-down - \e[1;2B
+							yascreen_pushch(s,YAS_K_S_DOWN);
 						break;
-					case 'C': // ^right - \e[1;5C
-						if (s->ansipos==6&&s->ansibuf[2]=='1'&&s->ansibuf[3]==';'&&s->ansibuf[4]=='5')
+					case 'C':
+						if (s->ansipos==6&&s->ansibuf[2]=='1'&&s->ansibuf[3]==';'&&s->ansibuf[4]=='5') // ^right - \e[1;5C
 							yascreen_pushch(s,YAS_K_C_RIGHT);
+						if (s->ansipos==6&&s->ansibuf[2]=='1'&&s->ansibuf[3]==';'&&s->ansibuf[4]=='2') // shift-right - \e[1;2C
+							yascreen_pushch(s,YAS_K_S_RIGHT);
 						break;
-					case 'D': // ^left - \e[1;5D
-						if (s->ansipos==6&&s->ansibuf[2]=='1'&&s->ansibuf[3]==';'&&s->ansibuf[4]=='5')
+					case 'D':
+						if (s->ansipos==6&&s->ansibuf[2]=='1'&&s->ansibuf[3]==';'&&s->ansibuf[4]=='5') // ^left - \e[1;5D
 							yascreen_pushch(s,YAS_K_C_LEFT);
+						if (s->ansipos==6&&s->ansibuf[2]=='1'&&s->ansibuf[3]==';'&&s->ansibuf[4]=='2') // shift-left - \e[1;2D
+							yascreen_pushch(s,YAS_K_S_LEFT);
 						break;
 				}
 			}
@@ -1914,6 +1961,30 @@ inline void yascreen_feed(yascreen *s,unsigned char c) { // {{{
 					break;
 				case 'S': // F4 \eOS
 					yascreen_pushch(s,YAS_K_F4);
+					break;
+				case 'w': // F5 \eOw
+					yascreen_pushch(s,YAS_K_F5);
+					break;
+				case 'x': // F6 \eOx
+					yascreen_pushch(s,YAS_K_F6);
+					break;
+				case 'y': // F7 \eOy
+					yascreen_pushch(s,YAS_K_F7);
+					break;
+				case 'm': // F8 \eOm
+					yascreen_pushch(s,YAS_K_F8);
+					break;
+				case 't': // F9 \eOt
+					yascreen_pushch(s,YAS_K_F9);
+					break;
+				case 'u': // F10 \eOu
+					yascreen_pushch(s,YAS_K_F10);
+					break;
+				case 'v': // F11 \eOv
+					yascreen_pushch(s,YAS_K_F11);
+					break;
+				case 'l': // F12 \eOl
+					yascreen_pushch(s,YAS_K_F12);
 					break;
 				case 'H': // home \eOH
 					yascreen_pushch(s,YAS_K_HOME);
