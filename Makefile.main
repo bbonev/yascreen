@@ -54,6 +54,8 @@ CFLAGS:=$(CCOPT) $(CFLAGS)
 
 all: libyascreen.a libyascreen.so yastest yastest.shared
 
+re: clean all
+
 yascreen.o: yascreen.c yascreen.h
 	$(CC) $(CFLAGS) -o $@ -c $<
 
