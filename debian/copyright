@@ -1,0 +1,16 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: yascreen
+Upstream-Contact: Boian Bonev <bbonev@ipacct.com>
+Source: https://github.com/bbonev/yascreen
+
+Files: *
+Copyright: 2015-2020 Boian Bonev <bbonev@ipacct.com>
+License: LGPL-3+
+
+Files: debian/*
+Copyright: 2020 Boian Bonev <bbonev@ipacct.com>
+License: LGPL-3+
+
+License: LGPL-3+
+ On Debian systems, the complete text of the GNU Lesser General
+ Public License version 2 can be found in "/usr/share/common-licenses/LGPL-3".

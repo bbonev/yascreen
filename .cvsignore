@@ -3,3 +3,5 @@
 yastest
 yastest.shared
 libyascreen.so*
+yascreen.pc
+yascreen.3

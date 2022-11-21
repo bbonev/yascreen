@@ -1,0 +1,6 @@
+YASCREEN_1.79 {
+	global: *;
+};
+YASCREEN_1.83 {
+	global: yascreen_line_flush;
+} YASCREEN_1.79;

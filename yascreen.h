@@ -1,21 +1,12 @@
-// $Id: yascreen.h,v 1.39 2020/07/09 20:55:29 bbonev Exp $
+// $Id: yascreen.h,v 1.42 2022/11/20 20:16:51 bbonev Exp $
 //
-// Copyright © 2015 Boian Bonev (bbonev@ipacct.com) {{{
+// Copyright © 2015-2020 Boian Bonev (bbonev@ipacct.com) {{{
+//
+// SPDX-License-Identifer: LGPL-3.0-or-later
 //
 // This file is part of yascreen - yet another screen library.
 //
-// yascreen is free software: you can redistribute it and/or mowdify
-// it under the terms of the GNU Affero General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// yascreen is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Affero General Public License for more details.
-//
-// You should have received a copy of the GNU Affero General Public License
-// along with yascreen.  If not, see <http://www.gnu.org/licenses/>.
+// yascreen is free software, released under the terms of GNU Lesser General Public License v3.0 or later
 // }}}
 
 #ifndef ___YASCREEN_H___
@@ -265,6 +256,10 @@ typedef enum {
 	YAS_K_C_UP=0x13b,
 	YAS_K_C_DOWN=0x13c,
 	YAS_K_C_RIGHT=0x13d,
+	YAS_K_S_LEFT=0x13e,
+	YAS_K_S_UP=0x13f,
+	YAS_K_S_DOWN=0x140,
+	YAS_K_S_RIGHT=0x141,
 	// ALT+letter
 	YAS_K_A_BT=YAS_K_ALT('`'),
 	YAS_K_A_1=YAS_K_ALT('1'),
@@ -389,6 +384,9 @@ inline void yascreen_update_attr(yascreen *s,uint32_t oattr,uint32_t nattr);
 inline int yascreen_print(yascreen *s,const char *format,...) __attribute__((format(printf,2,3)));
 inline int yascreen_write(yascreen *s,const char *str,int len);
 inline int yascreen_puts(yascreen *s,const char *str);
+// set if the above three calls should flush
+inline void yascreen_line_flush(yascreen *s,int on);
+// returns an escape sequence to clear line
 inline const char *yascreen_clearln_s(yascreen *s);
 
 // get current x size

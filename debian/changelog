@@ -1,0 +1,44 @@
+yascreen (1.86-1) unstable; urgency=medium
+
+  * Update to new upstream release of 1.86
+    - fix typos in escape seqences
+
+ -- Boian Bonev <bbonev@ipacct.com>  Tue, 07 Sep 2021 04:16:56 +0000
+
+yascreen (1.85-1) unstable; urgency=medium
+
+  * Update to new upstream release of 1.84
+    - fix some typos
+    - restore compatibility with line apps before output buffering was
+      implemented
+    - add yascreen_line_flush to disable internal flushes
+    - fix flush to be propagated to the external output callback
+  * Update to new upstream release of 1.85
+    - fix gcc10 warning on 32bit architectures
+
+ -- Boian Bonev <bbonev@ipacct.com>  Thu, 01 Oct 2020 00:15:45 +0300
+
+yascreen (1.82-1) unstable; urgency=medium
+
+  * Update to new upstream release of 1.81
+    - relincense under LGPL 3+
+    - remove debian folder from release tarballs (lintian: no-debian-changes)
+    - build only the library by default
+    - include generated yascreen.3 in release tarball to avoid most probably
+      missing/uninstallable go-md2man tool
+  * Indent continuation lines in long description
+  * Change release tarballs url in debian/watch
+  * Do not build-dep on go-md2man
+  * Update to new upstream release of 1.82
+    - implemented symbol versioning
+    - fixed bug with error handling in out (negative result from write would
+      cause OOB access)
+    - fixed undefined behaviour with void pointer arithmetic
+
+ -- Boian Bonev <bbonev@ipacct.com>  Tue, 29 Sep 2020 00:28:57 +0000
+
+yascreen (1.80-1) unstable; urgency=medium
+
+  * Initial release (Closes: #969927)
+
+ -- Boian Bonev <bbonev@ipacct.com>  Tue, 11 Aug 2020 18:59:47 +0000

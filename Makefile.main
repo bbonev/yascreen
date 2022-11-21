@@ -1,74 +1,91 @@
 ############################# configurable section #############################
+#
+# Copyright © 2015-2020 Boian Bonev (bbonev@ipacct.com) {{{
+#
+# SPDX-License-Identifer: LGPL-3.0-or-later
+#
+# This file is part of yascreen - yet another screen library.
+#
+# yascreen is free software, released under the terms of GNU Lesser General Public License v3.0 or later
+#
+# }}}
 
 # configure install path
 
-PREFIX:=/usr/local
+PREFIX?=/usr/local
+LIBDIR?=/lib/
+INCDIR?=/include/
 
 # configure debug or release build
 
-DEBUG:=-DDEBUG=1 -O0 -g3 -fno-inline -fstack-protector-all
-# for debug build, comment the line below
-DEBUG:=-O3
+# for debug build, uncomment the line below
+#DEBUG?=-DDEBUG=1 -O0 -g3 -fno-inline -fstack-protector-all
+DEBUG?=-O3
 
 # configure default tools
 
-CC?=cc
 # make defines AR, so we have to override to gcc-ar, so -flto works
 AR=gcc-ar
-STRIP?=strip
 RANLIB?=gcc-ranlib
+INSTALL?=install
 
 ########################## end of configurable section #########################
 
-# change options based on wild guess of compiler brand/type
-
-ifeq ($(lastword $(subst /, ,$(CC))),tcc)
-CCOPT:=-Wall $(DEBUG) -I.
-else
-ifeq ($(lastword $(subst /, ,$(CC))),clang)
-CCOPT:=-Wall $(DEBUG) -I. --std=gnu89
-else
-CCOPT:=-Wall $(DEBUG) -I. --std=gnu89 -flto
-endif
-endif
-
-CP-A:=cp -a
-ifeq ($(shell uname -s),OpenBSD)
-ifeq ($(CC),cc)
-CC:=egcc
-endif
-AR=ar
-RANLIB=ranlib
-CCOPT:=-Wall $(DEBUG) -I. --std=gnu89
-CP-A:=cp -fp
-endif
+VER=$(shell grep Revision yascreen.c|head -n1|sed -e 's/.\+Revision: \([0-9.]\+\) \+.\+/\1/'|tr . ' '|awk '{printf "%i.%02u\n",$$1+$$2/100,$$2%100}')
 
 # shared library version
 
 SOVERM:=0
 SOVERF:=0.0.0
 
+# change options based on flto configuration
+
+ifndef NO_FLTO
+CCOPT:=-Wall -Wextra -I. --std=gnu89 -fPIC -flto
+else
+CCOPT:=-Wall -Wextra -I. --std=gnu89 -fPIC
+endif
+
+LDOPT:=-Wl,--version-script,yascreen.vers
+SONAME:=-Wl,-soname,libyascreen.so.$(SOVERM)
+
+ifeq ($(shell uname -s),Darwin)
+AR=ar
+RANLIB=ranlib
+LDOPT:=
+SONAME:=
+endif
+
+ifeq ($(shell uname -s),OpenBSD)
+ifeq ($(CC),cc)
+CC:=egcc
+endif
+AR=ar
+RANLIB=ranlib
+CCOPT:=-Wall -Wextra -I. --std=gnu89
+LDOPT:=
+endif
+
 # allow to pass additional compiler flags
 
-CFLAGS:=$(CCOPT) $(CFLAGS)
+MYCFLAGS=$(DEBUG) $(CPPFLAGS) $(CFLAGS) $(CCOPT)
+MYLDFLAGS=$(LDFLAGS) $(LDOPT)
 
-all: libyascreen.a libyascreen.so yastest yastest.shared
+all: libyascreen.a libyascreen.so yascreen.pc
 
 re: clean all
 
 yascreen.o: yascreen.c yascreen.h
-	$(CC) $(CFLAGS) -o $@ -c $<
+	$(CC) $(MYCFLAGS) -o $@ -c $<
 
 yastest.o: yastest.c yascreen.h
-	$(CC) $(CFLAGS) -o $@ -c $<
+	$(CC) $(MYCFLAGS) -o $@ -c $<
 
 yastest: yastest.o yascreen.o
-	$(CC) $(CFLAGS) -o $@ $^
-	$(STRIP) $@
+	$(CC) $(MYCFLAGS) -o $@ $^
 
 yastest.shared: yastest.o libyascreen.so
-	$(CC) $(CFLAGS) -o $@ $^ -L. -lyascreen
-	$(STRIP) $@
+	$(CC) $(MYCFLAGS) -o $@ $^ -L. -lyascreen
 
 libyascreen.a: yascreen.o
 	$(AR) r $@ $^
@@ -80,19 +97,52 @@ libyascreen.so: libyascreen.so.$(SOVERM)
 libyascreen.so.$(SOVERM): libyascreen.so.$(SOVERF)
 	ln -fs $^ $@
 
-libyascreen.so.$(SOVERF): yascreen.c yascreen.h
-	$(CC) $(CFLAGS) -o $@ $< -fPIC -shared
-	$(STRIP) $@
+libyascreen.so.$(SOVERF): yascreen.o
+	$(CC) $(MYCFLAGS) $(MYLDFLAGS) -o $@ $< -fPIC -shared $(SONAME)
 
-install: all
-	$(CP-A) libyascreen.a libyascreen.so libyascreen.so.$(SOVERM) libyascreen.so.$(SOVERF) $(PREFIX)/lib/
-	$(CP-A) yascreen.h $(PREFIX)/include/
+yascreen.pc: yascreen.pc.in
+	sed \
+		-e 's|YASCREENVERSION|$(VER)|' \
+		-e 's|YASCREENPREFIX|$(PREFIX)|' \
+		-e 's|YASCREENLIBDIR|$(PREFIX)$(LIBDIR)|' \
+		-e 's|YASCREENINCDIR|$(PREFIX)$(INCDIR)|' \
+	< $< > $@
+
+install: libyascreen.a libyascreen.so yascreen.pc yascreen.3
+	$(INSTALL) -Ds -m 644 -t $(DESTDIR)$(PREFIX)$(LIBDIR) libyascreen.a
+	$(INSTALL) -D -m 644 -t $(DESTDIR)$(PREFIX)$(LIBDIR)/pkgconfig/ yascreen.pc
+	ln -fs libyascreen.so.$(SOVERF) $(DESTDIR)$(PREFIX)$(LIBDIR)libyascreen.so.$(SOVERM)
+	ln -fs libyascreen.so.$(SOVERM) $(DESTDIR)$(PREFIX)$(LIBDIR)libyascreen.so
+	$(INSTALL) -Ds -m 644 -t $(DESTDIR)$(PREFIX)$(LIBDIR) libyascreen.so.$(SOVERF)
+	$(INSTALL) -D -m 644 -t $(DESTDIR)$(PREFIX)$(INCDIR) yascreen.h
+	$(INSTALL) -D -m 0644 yascreen.3 $(DESTDIR)$(PREFIX)/share/man/man3/yascreen.3
 
 clean:
-	rm -f yastest yastest.shared yastest.o yascreen.o libyascreen.a libyascreen.so libyascreen.so.$(SOVERM) libyascreen.so.$(SOVERF)
+	rm -f yastest yastest.shared yastest.o yascreen.o libyascreen.a libyascreen.so libyascreen.so.$(SOVERM) libyascreen.so.$(SOVERF) yascreen.pc
 
 rebuild:
 	$(MAKE) clean
-	$(MAKE) all
+	$(MAKE) -j all
+
+mkotar:
+	$(MAKE) clean
+	dh_clean
+	$(MAKE) yascreen.3
+	tar \
+		--xform 's,^[.],yascreen-$(VER),' \
+		--exclude ./.git \
+		--exclude ./.gitignore \
+		--exclude ./.cvsignore \
+		--exclude ./CVS \
+		--exclude ./debian \
+		--exclude ./fedora/CVS \
+		-Jcvf ../yascreen_$(VER).orig.tar.xz .
+	-rm -f ../yascreen_$(VER).orig.tar.xz.asc
+	gpg -a --detach-sign ../yascreen_$(VER).orig.tar.xz
+	cp -fa ../yascreen_$(VER).orig.tar.xz ../yascreen-$(VER).tar.xz
+	cp -fa ../yascreen_$(VER).orig.tar.xz.asc ../yascreen-$(VER).tar.xz.asc
+
+yascreen.3: README.md
+	go-md2man  < README.md  > yascreen.3
 
 .PHONY: install clean rebuild all

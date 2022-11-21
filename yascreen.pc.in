@@ -1,0 +1,11 @@
+prefix=YASCREENPREFIX
+exec_prefix=YASCREENPREFIX
+libdir=YASCREENLIBDIR
+includedir=YASCREENINCDIR
+
+Name: libyascreen
+Description: Yet Another Screen Library
+Version: YASCREENVERSION
+Requires:
+Cflags: -I${includedir}
+Libs: -L${libdir} -lyascreen
