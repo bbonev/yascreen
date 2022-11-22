@@ -73,7 +73,9 @@ MYLDFLAGS=$(LDFLAGS) $(LDOPT)
 
 all: libyascreen.a libyascreen.so yascreen.pc
 
-re: clean all
+re:
+	$(MAKE) clean
+	$(MAKE) all
 
 yascreen.o: yascreen.c yascreen.h
 	$(CC) $(MYCFLAGS) -o $@ -c $<
