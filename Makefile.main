@@ -35,8 +35,8 @@ VER=$(shell grep Revision yascreen.c|head -n1|sed -e 's/.\+Revision: \([0-9.]\+\
 
 # shared library version
 
-SOVERM:=0
-SOVERF:=0.0.0
+SOVERM:=1
+SOVERF:=1.0.0
 
 # change options based on flto configuration
 
