@@ -1,4 +1,4 @@
-// $Id: yascreen.h,v 1.43 2022/12/18 23:36:58 bbonev Exp $
+// $Id: yascreen.h,v 1.44 2022/12/19 00:34:56 bbonev Exp $
 //
 // Copyright © 2015-2020 Boian Bonev (bbonev@ipacct.com) {{{
 //
@@ -431,6 +431,19 @@ inline int yascreen_peekch(yascreen *s);
 inline void yascreen_getsize(yascreen *s,int *sx,int *sy);
 // request terminal to report its size
 inline void yascreen_reqsize(yascreen *s);
+
+// wchar_t input
+// wait for a key, return wchar_t or extended keycode in 0xf0000-0xffffd range
+// wait no more than timeout in milliseconds
+inline wchar_t yascreen_getwch_to(yascreen *s,int timeout);
+// zero timeout=wait forever
+#define yascreen_getwch(s) yascreen_getwch_to(s,0)
+// negative timeout=do not wait
+#define yascreen_getwch_nowait(s) yascreen_getwch_to(s,-1)
+// put back key value in key buffer
+inline void yascreen_ungetwch(yascreen *s,wchar_t key);
+// peek for key without removing it from input queue
+inline wchar_t yascreen_peekwch(yascreen *s);
 
 // hints api
 inline void yascreen_set_hint_i(yascreen *s,int hint);

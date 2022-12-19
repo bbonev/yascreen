@@ -1,4 +1,4 @@
-// $Id: yascreen.c,v 1.88 2022/11/20 20:17:17 bbonev Exp $
+// $Id: yascreen.c,v 1.89 2022/12/19 00:34:56 bbonev Exp $
 //
 // Copyright © 2015-2020 Boian Bonev (bbonev@ipacct.com) {{{
 //
@@ -290,7 +290,7 @@ inline void *yascreen_get_hint_p(yascreen *s) { // {{{
 	return s->phint;
 } // }}}
 
-static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 1.88 $\n\n"; // {{{
+static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 1.89 $\n\n"; // {{{
 // }}}
 
 inline const char *yascreen_ver(void) { // {{{
@@ -2017,7 +2017,7 @@ inline int yascreen_getch_to(yascreen *s,int timeout) { // {{{
 
 	memset(&r,0,sizeof r); // make clang static analyzer happier (llvm bug #8920)
 	if (!s)
-		return -1;
+		return YAS_K_NONE;
 
 	if (s->outcb) // we do not handle the input, so return immediately
 		timeout=-1;
@@ -2044,9 +2044,9 @@ inline int yascreen_getch_to(yascreen *s,int timeout) { // {{{
 			return key;
 		}
 		if (s->outcb)
-			return -1;
+			return YAS_K_NONE;
 		if (STDOUT_FILENO<0)
-			return -1;
+			return YAS_K_NONE;
 		FD_ZERO(&r);
 		FD_SET(STDOUT_FILENO,&r);
 		if (-1!=select(STDOUT_FILENO+1,&r,NULL,NULL,pto)) {
@@ -2059,9 +2059,9 @@ inline int yascreen_getch_to(yascreen *s,int timeout) { // {{{
 		}
 		if (pto&&(timeout>0||s->escto)&&to.tv_sec==0&&to.tv_usec==0) { // return because of timeout
 			if (timeout<0) // nowait is set
-				return -1;
+				return YAS_K_NONE;
 			if (!toms&&timeout>0) // timeout is finished
-				return -1;
+				return YAS_K_NONE;
 			if (!toms)
 				tto=s->escto;
 			else
@@ -2162,5 +2162,66 @@ inline void yascreen_line_flush(yascreen *s,int on) { // {{{
 	if (!s)
 		return;
 	s->lineflush=!!on;
+} // }}}
+
+inline wchar_t yascreen_getwch_to(yascreen *s,int timeout) { // {{{
+	int ch=yascreen_getch_to(s,timeout);
+
+	if (YAS_IS_CC(ch))
+		return ch;
+	if (ch>=0&&ch<=0x7f)
+		return ch;
+	if ((ch&0xe0)==0xc0) { // 2 byte seq
+		unsigned char c2=yascreen_getch_nowait(s);
+		wchar_t w;
+
+		w=((ch&0x1f)<<6)|(c2&0x3f);
+		return w;
+	}
+	if ((ch&0xf0)==0xe0) { // 3 byte seq
+		unsigned char c2=yascreen_getch_nowait(s);
+		unsigned char c3=yascreen_getch_nowait(s);
+		wchar_t w;
+
+		w=((ch&0x0f)<<12)|((c2&0x3f)<<6)|(c3&0x3f);
+		return w;
+	}
+	if ((ch&0xf8)==0xf0) { // 4 byte seq
+		unsigned char c2=yascreen_getch_nowait(s);
+		unsigned char c3=yascreen_getch_nowait(s);
+		unsigned char c4=yascreen_getch_nowait(s);
+		wchar_t w;
+
+		w=((ch&0x07)<<18)|((c2&0x3f)<<12)|((c3&0x3f)<<6)|(c4&0x3f);
+		return w;
+	}
+	//if ((ch&0xfc)==0xf8) { // 5 byte seq
+	//}
+	//if ((str[i]&0xfe)==0xfc) { // 6 byte seq
+	//}
+	return YAS_K_NONE;
+} // }}}
+
+inline void yascreen_ungetwch(yascreen *s,wchar_t key) { // {{{
+	if (YAS_IS_CC(key))
+		yascreen_ungetch(s,key);
+	else {
+		char ns[MB_CUR_MAX+1];
+		int rc=wctomb(ns,key);
+		int i;
+
+		if (rc==-1)
+			return;
+		for (i=rc;i>0;i--)
+			yascreen_ungetch(s,ns[i]);
+	}
+} // }}}
+
+inline wchar_t yascreen_peekwch(yascreen *s) { // {{{
+	wchar_t ch=yascreen_getwch_nowait(s);
+
+	if (ch!=-1)
+		yascreen_ungetwch(s,ch);
+	return ch;
 } // }}}
 
