@@ -1,4 +1,4 @@
-// $Id: yascreen.h,v 1.46 2022/12/19 04:21:12 bbonev Exp $
+// $Id: yascreen.h,v 1.47 2022/12/19 05:27:20 bbonev Exp $
 //
 // Copyright © 2015-2020 Boian Bonev (bbonev@ipacct.com) {{{
 //
@@ -12,6 +12,7 @@
 #ifndef ___YASCREEN_H___
 #define ___YASCREEN_H___
 
+#include <stddef.h>
 #include <unistd.h>
 #include <inttypes.h>
 
