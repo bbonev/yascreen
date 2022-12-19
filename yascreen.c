@@ -1,4 +1,4 @@
-// $Id: yascreen.c,v 1.89 2022/12/19 00:34:56 bbonev Exp $
+// $Id: yascreen.c,v 1.90 2022/12/19 04:17:19 bbonev Exp $
 //
 // Copyright © 2015-2020 Boian Bonev (bbonev@ipacct.com) {{{
 //
@@ -153,6 +153,7 @@ struct _yascreen {
 	uint8_t haveansi:1; // we do have a reported screen size from ansi sequence
 	uint8_t havenaws:1; // we do have a reported screen size from telent naws
 	uint8_t istelnet:1; // do process telnet sequences
+	uint8_t isunicode:1; // do process unicode sequences
 	uint8_t cursor:1; // last cursor state
 	uint8_t redraw:1; // flag to redraw from scratch
 	uint8_t lineflush:1; // always flush after line operations
@@ -290,7 +291,7 @@ inline void *yascreen_get_hint_p(yascreen *s) { // {{{
 	return s->phint;
 } // }}}
 
-static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 1.89 $\n\n"; // {{{
+static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 1.90 $\n\n"; // {{{
 // }}}
 
 inline const char *yascreen_ver(void) { // {{{
@@ -321,14 +322,7 @@ inline yascreen *yascreen_init(int sx,int sy) { // {{{
 	if (!s)
 		return NULL;
 
-	s->state=ST_NORM;
-	s->tstate=T_NORM;
-	s->ustate=U_NORM;
-	s->escto=YAS_DEFAULT_ESCTO;
-	s->cursor=1;
-	s->cursorx=0;
-	s->cursory=0;
-	if (!s->outcb&&isatty(STDOUT_FILENO)) { // output is a terminal
+	if (/*!s->outcb&&*/isatty(STDOUT_FILENO)) { // output is a terminal
 		s->tsstack=(struct termios *)calloc(1,sizeof(struct termios));
 		if (!s->tsstack) {
 			free(s);
@@ -355,6 +349,39 @@ inline yascreen *yascreen_init(int sx,int sy) { // {{{
 	}
 	s->sx=sx;
 	s->sy=sy;
+	// s->outcb is already NULL
+	// s->mem is initialized below
+	// s->scr is initialized below
+	// s->tstack is initialized above
+	// s->tssize is initialized above
+	s->escto=YAS_DEFAULT_ESCTO;
+	// s->keysize is initialized below
+	// s->keycnt is relady zero
+	// s->keys is initialized below
+	// s->ansibuf is already zeroes
+	// s->ansipos is already zero
+	// s->sosnbuf is already zeroes
+	// s->sosnpos is already zero
+	// s->utf is already zeroes
+	// s->escts is already zero
+	s->state=ST_NORM;
+	s->tstate=T_NORM;
+	s->ustate=U_NORM;
+	// s->cursorx is already zero
+	// s->cursory is already zero
+	// s->scrx is already zero
+	// s->scry is already zero
+	// s->haveansi is already zero
+	// s->havenaws is already zero
+	// s->istelnet is already zero
+	s->isunicode=1; // previous versions were unicode only
+	s->cursor=1; // cursor is visible by default
+	s->redraw=1; // leave scr empty, so that on first refresh everything is redrawn
+	s->lineflush=1; // be compatible with earlier versions that worked without output buffering normally a recent client will set this to 0 and use explicit flush
+	// s->hint is already zero
+	// s->phint is already NULL
+	// s->outb is already zeroes
+	// s->outp is already zero
 
 	s->keys=(int *)calloc(KEYSTEP,sizeof(int));
 	if (!s->keys) {
@@ -381,11 +408,6 @@ inline yascreen *yascreen_init(int sx,int sy) { // {{{
 
 	for (i=0;i<sx*sy;i++)
 		strncpy(s->mem[i].d," ",sizeof s->mem[i].d);
-	// be compatible with earlier versions that worked without output buffering
-	// normally a recent client will set this to 0 and use explicit flush
-	s->lineflush=1;
-	// leave scr empty, so that on first refresh everything is redrawn
-	s->redraw=1;
 	return s;
 } // }}}
 
@@ -402,6 +424,13 @@ inline void yascreen_set_telnet(yascreen *s,int on) { // {{{
 	if (!s)
 		return;
 	s->istelnet=!!on;
+} // }}}
+
+inline void yascreen_set_unicode(yascreen *s,int on) { // {{{
+	if (!s)
+		return;
+	s->isunicode=!!on;
+	s->keycnt=0; // flush input buffer - it may not be verified unicode
 } // }}}
 
 inline void yascreen_init_telnet(yascreen *s) { // {{{
@@ -619,7 +648,7 @@ static inline int yascreen_update_range(yascreen *s,int y1,int y2) { // {{{
 						outs(s,(s->mem[j*s->sx+i-cnt].style&YAS_STORAGE)?s->mem[j*s->sx+i-cnt].p:s->mem[j*s->sx+i-cnt].d);
 						cnt--;
 					}
-					cnt=0; // cycle above leaves cnt at -1
+					cnt=0; // loop above leaves cnt at -1
 				} else
 					cnt++;
 			}
@@ -1518,6 +1547,10 @@ inline void yascreen_feed(yascreen *s,unsigned char c) { // {{{
 			} else { // handle standard keys
 				if (c=='\r') // shift state to ST_ENTER to eat optional LF/NUL after CR
 					s->state=ST_ENTER;
+				if (!s->isunicode) { // do not process unicode sequences, push the byte as-is
+					yascreen_pushch(s,c);
+					break;
+				}
 				switch (s->ustate) {
 					case U_NORM:
 						if (c&0x80) {
@@ -2015,9 +2048,10 @@ inline int yascreen_getch_to(yascreen *s,int timeout) { // {{{
 	struct timeval to,*pto=&to;
 	fd_set r;
 
-	memset(&r,0,sizeof r); // make clang static analyzer happier (llvm bug #8920)
 	if (!s)
 		return YAS_K_NONE;
+
+	memset(&r,0,sizeof r); // make clang static analyzer happier (llvm bug #8920)
 
 	if (s->outcb) // we do not handle the input, so return immediately
 		timeout=-1;
@@ -2124,7 +2158,7 @@ inline void yascreen_esc_to(yascreen *s,int timeout) { // {{{
 inline int yascreen_peekch(yascreen *s) { // {{{
 	int ch=yascreen_getch_nowait(s);
 
-	if (ch!=-1)
+	if (ch!=YAS_K_NONE)
 		yascreen_ungetch(s,ch);
 	return ch;
 } // }}}
@@ -2165,13 +2199,21 @@ inline void yascreen_line_flush(yascreen *s,int on) { // {{{
 } // }}}
 
 inline wchar_t yascreen_getwch_to(yascreen *s,int timeout) { // {{{
-	int ch=yascreen_getch_to(s,timeout);
+	int ch;
+
+	if (!s)
+		return YAS_K_NONE;
+	if (!s->isunicode)
+		return YAS_K_NONE;
+
+	ch=yascreen_getch_to(s,timeout);
 
 	if (YAS_IS_CC(ch))
 		return ch;
 	if (ch>=0&&ch<=0x7f)
 		return ch;
 	if ((ch&0xe0)==0xc0) { // 2 byte seq
+		// unicode mode guarantees that we have a valid sequence
 		unsigned char c2=yascreen_getch_nowait(s);
 		wchar_t w;
 
@@ -2179,6 +2221,7 @@ inline wchar_t yascreen_getwch_to(yascreen *s,int timeout) { // {{{
 		return w;
 	}
 	if ((ch&0xf0)==0xe0) { // 3 byte seq
+		// unicode mode guarantees that we have a valid sequence
 		unsigned char c2=yascreen_getch_nowait(s);
 		unsigned char c3=yascreen_getch_nowait(s);
 		wchar_t w;
@@ -2187,6 +2230,7 @@ inline wchar_t yascreen_getwch_to(yascreen *s,int timeout) { // {{{
 		return w;
 	}
 	if ((ch&0xf8)==0xf0) { // 4 byte seq
+		// unicode mode guarantees that we have a valid sequence
 		unsigned char c2=yascreen_getch_nowait(s);
 		unsigned char c3=yascreen_getch_nowait(s);
 		unsigned char c4=yascreen_getch_nowait(s);
@@ -2203,6 +2247,11 @@ inline wchar_t yascreen_getwch_to(yascreen *s,int timeout) { // {{{
 } // }}}
 
 inline void yascreen_ungetwch(yascreen *s,wchar_t key) { // {{{
+	if (!s)
+		return;
+	if (!s->isunicode)
+		return;
+
 	if (YAS_IS_CC(key))
 		yascreen_ungetch(s,key);
 	else {
@@ -2210,17 +2259,24 @@ inline void yascreen_ungetwch(yascreen *s,wchar_t key) { // {{{
 		int rc=wctomb(ns,key);
 		int i;
 
-		if (rc==-1)
+		if (rc<=0)
 			return;
-		for (i=rc;i>0;i--)
+		for (i=rc-1;i>0;i--)
 			yascreen_ungetch(s,ns[i]);
 	}
 } // }}}
 
 inline wchar_t yascreen_peekwch(yascreen *s) { // {{{
-	wchar_t ch=yascreen_getwch_nowait(s);
+	wchar_t ch;
 
-	if (ch!=-1)
+	if (!s)
+		return YAS_K_NONE;
+	if (!s->isunicode)
+		return YAS_K_NONE;
+
+	ch=yascreen_getwch_nowait(s);
+
+	if (ch!=YAS_K_NONE)
 		yascreen_ungetwch(s,ch);
 	return ch;
 } // }}}
