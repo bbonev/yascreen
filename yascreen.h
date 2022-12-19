@@ -1,4 +1,4 @@
-// $Id: yascreen.h,v 1.45 2022/12/19 04:17:19 bbonev Exp $
+// $Id: yascreen.h,v 1.46 2022/12/19 04:21:12 bbonev Exp $
 //
 // Copyright © 2015-2020 Boian Bonev (bbonev@ipacct.com) {{{
 //
@@ -332,10 +332,10 @@ inline yascreen *yascreen_init(int sx,int sy);
 inline const char *yascreen_ver(void);
 // change output; if output is NULL, default is to stdout
 inline int yascreen_setout(yascreen *s,ssize_t (*out)(yascreen *s,const void *data,size_t len));
-// enable/disable handling of telnet protocol (disabled by default)
-inline void yascreen_set_telnet(yascreen *s,int on);
 // enable/disable handling of unicode input (enabled by default)
 inline void yascreen_set_unicode(yascreen *s,int on);
+// enable/disable handling of telnet protocol (disabled by default)
+inline void yascreen_set_telnet(yascreen *s,int on);
 // init remote telnet client
 inline void yascreen_init_telnet(yascreen *s);
 // resize screen; should redraw afterwards
