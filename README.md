@@ -480,7 +480,9 @@ inline yascreen *yascreen_init(int sx,int sy);
 ```
 
 allocate and initialize screen data
+
 output defaults to stdout
+
 in case output is a terminal and initial size is (0,0), the screen size is autodetected
 
 in case of error, returns `NULL`
@@ -498,6 +500,7 @@ inline int yascreen_setout(yascreen *s,ssize_t (*out)(yascreen *s,const void *da
 ```
 
 set callback that handles output
+
 if out=NULL, the output goes to `stdout`
 
 the callback may implement internal buffering, a flush is signalled by calling `out` with len=0
@@ -535,7 +538,9 @@ inline int yascreen_resize(yascreen *s,int sx,int sy);
 ```
 
 resize screen
+
 should redraw afterwards
+
 since allocation is involved, this may fail and return -1
 
 ### yascreen\_free
@@ -610,6 +615,7 @@ inline int yascreen_putsxyu(yascreen *s,int x,int y,uint32_t attr,const char *st
 ```
 
 print at position, if data exceeds buffer, then it gets truncated
+
 screen is immediately updated
 
 ### yascreen\_update
@@ -618,6 +624,7 @@ inline int yascreen_update(yascreen *s);
 ```
 
 sync memory state to screen
+
 since allocation is involved, this may fail and return -1
 
 ### yascreen\_redraw
@@ -633,6 +640,7 @@ inline void yascreen_clear_mem(yascreen *s,uint32_t attr);
 ```
 
 clear memory buffer
+
 all cells in the screen are set to `Space`, using `attr` for colors and style
 
 ### yascreen\_cursor
@@ -641,6 +649,7 @@ inline void yascreen_cursor(yascreen *s,int on);
 ```
 
 hide (`on`=0) or show (`on` is non-zero) cusror
+
 screen is updated immediately
 
 ### yascreen\_cursor\_xy
@@ -649,6 +658,7 @@ inline void yascreen_cursor_xy(yascreen *s,int x,int y);
 ```
 
 set cursor position
+
 screen is updated immediately
 
 ### yascreen\_altbuf
@@ -657,6 +667,7 @@ inline void yascreen_altbuf(yascreen *s,int on);
 ```
 
 switch between regular and alternative buffer
+
 screen is updated immediately
 
 ### yascreen\_clear
@@ -679,7 +690,9 @@ inline void yascreen_update_attr(yascreen *s,uint32_t oattr,uint32_t nattr);
 ```
 
 apply difference between two attrs and output the optimized ANSI sequence to switch from `oattr` to `nattr`
+
 if `oattr`=0xffffffff, the full ANSI sequence will be generated
+
 no change to memory buffers
 
 ### yascreen\_set\_attr
@@ -749,8 +762,11 @@ inline void yascreen_ckto(yascreen *s);
 ```
 
 in case of external event loop, this call will check for single ESC key
+
 should be called regularly enough so that the above specified timeout is not extended too much
+
 if not called often enough then single ESC will be yielded after longer timeout
+
 if not called at all then single ESC will be yielded with next key press
 
 ### yascreen\_getch\_to
@@ -766,7 +782,9 @@ yascreen_getch(s)
 ```
 
 get a key without timeout
+
 this macro expands to `yascreen_getch_to(s,0)`
+
 zero timeout=wait forever
 
 ### yascreen\_getch\_nowait
@@ -775,7 +793,9 @@ yascreen_getch_nowait(s)
 ```
 
 get a key, if available, return immediately
+
 this macro expands to `yascreen_getch_to(s,-1)`
+
 negative timeout=do not wait
 
 ### yascreen\_ungetch
@@ -784,6 +804,7 @@ inline void yascreen_ungetch(yascreen *s,int key);
 ```
 
 put back key value in key buffer
+
 the internal key buffer is dynamically allocated, hence there is no limit of how many key codes may be put back, but in case of memory allocation failure, the error will not be reported and the key will not be put into the buffer
 
 ### yascreen\_pushch
@@ -792,7 +813,9 @@ inline void yascreen_pushch(yascreen *s,int key);
 ```
 
 push key value at end of key buffer
+
 similar to `yascreen_ungetch` but the `key` code will be returned after all other key codes currently in the buffer
+
 the internal key buffer is dynamically allocated, hence there is no limit of how many key codes may be put back, but in case of memory allocation failure, the error will not be reported and the key will not be put into the buffer
 
 ### yascreen\_feed
@@ -801,6 +824,7 @@ inline void yascreen_feed(yascreen *s,unsigned char c);
 ```
 
 feed key sequence state machine with byte stream
+
 this is useful to implement external event loop and read key codes by `yascreen_getch_nowait` until it returns -1
 
 ### yascreen\_peekch
@@ -816,7 +840,9 @@ inline void yascreen_getsize(yascreen *s,int *sx,int *sy);
 ```
 
 get last reported screen size
+
 set both to 0 if there is none
+
 this will yield valid result after `YAS_SCREEN_SIZE` is returned as keypress
 
 ### yascreen\_reqsize
@@ -844,6 +870,7 @@ inline void *yascreen_get_hint_p(yascreen *s);
 ```
 
 get/set opaque hint values
+
 integer and pointer hints are stored separately and both can be used at the same time
 
 these are useful to link the `yascreen` instance to user program data
@@ -884,7 +911,9 @@ yascreen_getwch(s)
 ```
 
 get a key as wide character without timeout
+
 this macro expands to `yascreen_getwch_to(s,0)`
+
 zero timeout=wait forever
 
 `yascreen_getwch` does not work in non-unicode mode and will always return `YAS_K_NONE`
@@ -895,7 +924,9 @@ yascreen_getwch_nowait(s)
 ```
 
 get a key as a wide character, if available, return immediately
+
 this macro expands to `yascreen_getwch_to(s,-1)`
+
 negative timeout=do not wait
 
 `yascreen_getwch_nowait` does not work in non-unicode mode and will always return `YAS_K_NONE`
@@ -906,6 +937,7 @@ inline void yascreen_ungetwch(yascreen *s,wchar_t key);
 ```
 
 put back wide character key value in key buffer
+
 the internal key buffer is dynamically allocated, hence there is no limit of how many key codes may be put back, but in case of memory allocation failure, the error will not be reported and the key will not be put into the buffer
 
 the internal key buffer contains utf8 and the wide character will be expanded to the appropriate utf8 sequence
