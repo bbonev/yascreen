@@ -1,4 +1,4 @@
-// $Id: yascreen.c,v 1.90 2022/12/19 04:17:19 bbonev Exp $
+// $Id: yascreen.c,v 1.91 2022/12/19 04:50:33 bbonev Exp $
 //
 // Copyright © 2015-2020 Boian Bonev (bbonev@ipacct.com) {{{
 //
@@ -291,7 +291,7 @@ inline void *yascreen_get_hint_p(yascreen *s) { // {{{
 	return s->phint;
 } // }}}
 
-static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 1.90 $\n\n"; // {{{
+static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 1.91 $\n\n"; // {{{
 // }}}
 
 inline const char *yascreen_ver(void) { // {{{
@@ -356,7 +356,7 @@ inline yascreen *yascreen_init(int sx,int sy) { // {{{
 	// s->tssize is initialized above
 	s->escto=YAS_DEFAULT_ESCTO;
 	// s->keysize is initialized below
-	// s->keycnt is relady zero
+	// s->keycnt is already zero
 	// s->keys is initialized below
 	// s->ansibuf is already zeroes
 	// s->ansipos is already zero
