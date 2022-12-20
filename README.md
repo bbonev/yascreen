@@ -96,14 +96,11 @@ for (;;) { // main loop
 }
 ```
 
-
-
 For sockets input is handled like option 1 in the example above and yascreen needs to be provided with a callback for output.
 
 In multiprocess mode daemons where `stdin`/`stdout` are redirected to a socket the same model from the example above can be used. Obviously SIGWINCH will work only for terminals and for sockets the screen size can get to be known either via telnet or ASNI sequences.
 
 ## Example initialization for socket with external event loop and telnet sequences processing
-
 
 ```c
 yascreen *s;
@@ -286,9 +283,9 @@ There is a macro `YAS_IS_CC(code)` that will evaluate to non-zero for the specia
 |`YAS_K_X`         | 0x58  | X |
 |`YAS_K_Y`         | 0x59  | Y |
 |`YAS_K_Z`         | 0x5a  | Z |
-|`YAS_K_OSQ`       | 0x5b  | [ |
+|`YAS_K_OSQ`       | 0x5b  | OpenSquareBracket |
 |`YAS_K_BSLASH`    | 0x5c  | Backslash |
-|`YAS_K_CSQ`       | 0x5d  | ] |
+|`YAS_K_CSQ`       | 0x5d  | CloseSquareBracket |
 |`YAS_K_CARRET`    | 0x5e  | ^ |
 |`YAS_K_USCORE`    | 0x5f  | Underscore |
 |`YAS_K_BTICK`     | 0x60  | Backtick |
