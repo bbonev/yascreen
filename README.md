@@ -1,5 +1,4 @@
-YASCREEN 3 "September 30, 2020" yascreen "User-Manual"
-==================================================
+# YASCREEN 3 "September 30, 2020" yascreen "User-Manual"
 
 # NAME
   yascreen - Yet Another Screen Library (curses replacement for daemons and embedded apps)
@@ -12,21 +11,21 @@ YASCREEN 3 "September 30, 2020" yascreen "User-Manual"
 
 ## Main features
 
-- small footprint
-- does not have external dependencies
-- allows both internal and external event loop
-- allows stdin/stdout or external input/output (can work over socket)
-- supports basic set of telnet sequences, making it suitable for built-in terminal interfaces for daemons
-- supports a limited set of input keystroke sequences
-- fully unicode compatible (parts of this depend on wcwidth in libc)
-- supports utf8 verification of input
-- supports utf8 input and wide character input
-- supports non-utf8 input mode
-- relies only on a limited subset of ansi/xterm ESC sequences, making it compatible with mostly all modern terminals (inspired by [linenoise](https://github.com/antirez/linenoise))
-- there is no curses API and ancient terminal compatibility, hence less bloat
-- there is no autoconf - there is no need to have one
-- clean API with opaque private data, usable from C/C++
-- easy cross compilation setup (by setting CC, AR, STRIP and RANLIB)
+-   small footprint
+-   does not have external dependencies
+-   allows both internal and external event loop
+-   allows stdin/stdout or external input/output (can work over socket)
+-   supports basic set of telnet sequences, making it suitable for built-in terminal interfaces for daemons
+-   supports a limited set of input keystroke sequences
+-   fully unicode compatible (parts of this depend on wcwidth in libc)
+-   supports utf8 verification of input
+-   supports utf8 input and wide character input
+-   supports non-utf8 input mode
+-   relies only on a limited subset of ansi/xterm ESC sequences, making it compatible with mostly all modern terminals (inspired by [linenoise](https://github.com/antirez/linenoise))
+-   there is no curses API and ancient terminal compatibility, hence less bloat
+-   there is no autoconf - there is no need to have one
+-   clean API with opaque private data, usable from C/C++
+-   easy cross compilation setup (by setting CC, AR, STRIP and RANLIB)
 
 Current development is done on Linux, with additional testing on OpenBSD/FreeBSD; other platforms may need minimal fixes.
 
@@ -43,7 +42,6 @@ Modes of operation can be modified at runtime.
 For terminal use signal handling (`SIGWINCH`) should always be handled by the application.
 
 ## Example initialization for terminal and handling of SIGWINCH
-
 
 ```c
 yascreen *s;
@@ -131,16 +129,13 @@ for (;;) { // main loop
 
 ```
 
-API Reference
-=============
+# API Reference
 
-Predefined constants and Helper macros
---------------------------------------
-
+## Predefined constants and Helper macros
 
 Internally style is kept into bitfields in a single integer variable - that includes foreground/background colors, style modifiers (bold, italic, underline, inverse and blink.
 
-**Style codes**
+### Style codes
 
 | Name        | Function  |
 |-------------|-----------|
@@ -151,8 +146,7 @@ Internally style is kept into bitfields in a single integer variable - that incl
 |`YAS_BOLD`   | bold      |
 |`YAS_BLINK`  | blink     |
 
-
-**Color codes**
+### Color codes
 
 | Name           | Color                       |
 |----------------|-----------------------------|
@@ -167,7 +161,7 @@ Internally style is kept into bitfields in a single integer variable - that incl
 |`YAS_FGCOLORDEF`| default terminal foreground |
 |`YAS_BGCOLORDEF`| default terminal background |
 
-**Helper macros**
+### Helper macros
 
 | Name                 | Description                                         |
 |----------------------|-----------------------------------------------------|
@@ -180,9 +174,9 @@ Internally style is kept into bitfields in a single integer variable - that incl
 
 All of the above can be or'ed into attribute, provided that the bits for foreground/background color are all zeroes.
 
-**Key codes**
+### Key codes
 
-- Special, generated internally
+-   Special, generated internally
 
 Previous versions of the library used -1 and 0x100+ for these codes. In order to achieve unicode wide character compatibility and simpler API, the reserved Unicode range 0xf0000-0xffffd is used for the special codes both in narrow and wide character input modes.
 
@@ -194,7 +188,7 @@ There is a macro `YAS_IS_CC(code)` that will evaluate to non-zero for the specia
 |`YAS_SCREEN_SIZE` | 0xf0701 | notification for screen size change (may come because of telnet or ANSI sequence) |
 |`YAS_TELNET_SIZE` | 0xf0702 | notification for screen size change; duplicates the above, may be used to differentiate how screen size change event was generated |
 
-- Normal keys
+-   Normal keys
 
 | Name             | Value | Description           |
 |------------------|------:|-----------------------|
@@ -331,7 +325,7 @@ There is a macro `YAS_IS_CC(code)` that will evaluate to non-zero for the specia
 |`YAS_K_C_8`       | 0x7f  | Backspace; see below; depends on terminal see YAS-K-C-H |
 |`YAS_K_BSP`       | 0x7f  | Backspace; see below; depends on terminal see YAS-K-C-H |
 
-- Extended keys, parsed from ANSI sequences
+-   Extended keys, parsed from ANSI sequences
 
 | Name             | Value   | Description           |
 |------------------|--------:|-----------------------|
@@ -402,7 +396,7 @@ There is a macro `YAS_IS_CC(code)` that will evaluate to non-zero for the specia
 | `YAS_K_S_DOWN`   | 0xf0041 | Shift-Down |
 | `YAS_K_S_RIGHT`  | 0xf0042 | Shift-Right |
 
-- Alt-\<letter\>
+-   Alt-\<letter\>
 
 These codes are generated by a helper macro - `YAS_K_ALT(keycode)`.
 
@@ -462,17 +456,13 @@ These codes are generated by a helper macro - `YAS_K_ALT(keycode)`.
 | `YAS_K_A_y`      | Alt-y |
 | `YAS_K_A_z`      | Alt-z |
 
-
-Functions
----------
+## Functions
 
 All functions in the API work with a pointer to an opaque `yascreen` structure.
 
 The structure is allocated internally in the library by `yascreen_init` and it is the job of the user program to keep track of it.
 
 The library is thread safe, as long as each `struct yascreen` object is accessed by a single thread.
-
-
 
 ### yascreen\_init
 ```c
