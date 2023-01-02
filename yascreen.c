@@ -1,6 +1,6 @@
-// $Id: yascreen.c,v 1.86 2021/09/07 04:13:16 bbonev Exp $
+// $Id: yascreen.c,v 1.92 2023/01/02 11:35:04 bbonev Exp $
 //
-// Copyright © 2015-2020 Boian Bonev (bbonev@ipacct.com) {{{
+// Copyright © 2015-2023 Boian Bonev (bbonev@ipacct.com) {{{
 //
 // SPDX-License-Identifer: LGPL-3.0-or-later
 //
@@ -153,6 +153,7 @@ struct _yascreen {
 	uint8_t haveansi:1; // we do have a reported screen size from ansi sequence
 	uint8_t havenaws:1; // we do have a reported screen size from telent naws
 	uint8_t istelnet:1; // do process telnet sequences
+	uint8_t isunicode:1; // do process unicode sequences
 	uint8_t cursor:1; // last cursor state
 	uint8_t redraw:1; // flag to redraw from scratch
 	uint8_t lineflush:1; // always flush after line operations
@@ -290,7 +291,7 @@ inline void *yascreen_get_hint_p(yascreen *s) { // {{{
 	return s->phint;
 } // }}}
 
-static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 1.86 $\n\n"; // {{{
+static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 1.92 $\n\n"; // {{{
 // }}}
 
 inline const char *yascreen_ver(void) { // {{{
@@ -321,14 +322,7 @@ inline yascreen *yascreen_init(int sx,int sy) { // {{{
 	if (!s)
 		return NULL;
 
-	s->state=ST_NORM;
-	s->tstate=T_NORM;
-	s->ustate=U_NORM;
-	s->escto=YAS_DEFAULT_ESCTO;
-	s->cursor=1;
-	s->cursorx=0;
-	s->cursory=0;
-	if (!s->outcb&&isatty(STDOUT_FILENO)) { // output is a terminal
+	if (/*!s->outcb&&*/isatty(STDOUT_FILENO)) { // output is a terminal
 		s->tsstack=(struct termios *)calloc(1,sizeof(struct termios));
 		if (!s->tsstack) {
 			free(s);
@@ -355,6 +349,39 @@ inline yascreen *yascreen_init(int sx,int sy) { // {{{
 	}
 	s->sx=sx;
 	s->sy=sy;
+	// s->outcb is already NULL
+	// s->mem is initialized below
+	// s->scr is initialized below
+	// s->tstack is initialized above
+	// s->tssize is initialized above
+	s->escto=YAS_DEFAULT_ESCTO;
+	// s->keysize is initialized below
+	// s->keycnt is already zero
+	// s->keys is initialized below
+	// s->ansibuf is already zeroes
+	// s->ansipos is already zero
+	// s->sosnbuf is already zeroes
+	// s->sosnpos is already zero
+	// s->utf is already zeroes
+	// s->escts is already zero
+	s->state=ST_NORM;
+	s->tstate=T_NORM;
+	s->ustate=U_NORM;
+	// s->cursorx is already zero
+	// s->cursory is already zero
+	// s->scrx is already zero
+	// s->scry is already zero
+	// s->haveansi is already zero
+	// s->havenaws is already zero
+	// s->istelnet is already zero
+	s->isunicode=1; // previous versions were unicode only
+	s->cursor=1; // cursor is visible by default
+	s->redraw=1; // leave scr empty, so that on first refresh everything is redrawn
+	s->lineflush=1; // be compatible with earlier versions that worked without output buffering normally a recent client will set this to 0 and use explicit flush
+	// s->hint is already zero
+	// s->phint is already NULL
+	// s->outb is already zeroes
+	// s->outp is already zero
 
 	s->keys=(int *)calloc(KEYSTEP,sizeof(int));
 	if (!s->keys) {
@@ -381,11 +408,6 @@ inline yascreen *yascreen_init(int sx,int sy) { // {{{
 
 	for (i=0;i<sx*sy;i++)
 		strncpy(s->mem[i].d," ",sizeof s->mem[i].d);
-	// be compatible with earlier versions that worked without output buffering
-	// normally a recent client will set this to 0 and use explicit flush
-	s->lineflush=1;
-	// leave scr empty, so that on first refresh everything is redrawn
-	s->redraw=1;
 	return s;
 } // }}}
 
@@ -402,6 +424,13 @@ inline void yascreen_set_telnet(yascreen *s,int on) { // {{{
 	if (!s)
 		return;
 	s->istelnet=!!on;
+} // }}}
+
+inline void yascreen_set_unicode(yascreen *s,int on) { // {{{
+	if (!s)
+		return;
+	s->isunicode=!!on;
+	s->keycnt=0; // flush input buffer - it may not be verified unicode
 } // }}}
 
 inline void yascreen_init_telnet(yascreen *s) { // {{{
@@ -619,7 +648,7 @@ static inline int yascreen_update_range(yascreen *s,int y1,int y2) { // {{{
 						outs(s,(s->mem[j*s->sx+i-cnt].style&YAS_STORAGE)?s->mem[j*s->sx+i-cnt].p:s->mem[j*s->sx+i-cnt].d);
 						cnt--;
 					}
-					cnt=0; // cycle above leaves cnt at -1
+					cnt=0; // loop above leaves cnt at -1
 				} else
 					cnt++;
 			}
@@ -1518,6 +1547,10 @@ inline void yascreen_feed(yascreen *s,unsigned char c) { // {{{
 			} else { // handle standard keys
 				if (c=='\r') // shift state to ST_ENTER to eat optional LF/NUL after CR
 					s->state=ST_ENTER;
+				if (!s->isunicode) { // do not process unicode sequences, push the byte as-is
+					yascreen_pushch(s,c);
+					break;
+				}
 				switch (s->ustate) {
 					case U_NORM:
 						if (c&0x80) {
@@ -1851,12 +1884,38 @@ inline void yascreen_feed(yascreen *s,unsigned char c) { // {{{
 							yascreen_pushch(s,YAS_K_F7);
 						if (s->ansipos==5&&s->ansibuf[2]=='1'&&s->ansibuf[3]=='9') // F8 - \e[19~
 							yascreen_pushch(s,YAS_K_F8);
+						if (s->ansipos==5&&s->ansibuf[2]=='2'&&s->ansibuf[3]=='0') // F9 - \e[20~
+							yascreen_pushch(s,YAS_K_F9);
 						if (s->ansipos==5&&s->ansibuf[2]=='2'&&s->ansibuf[3]=='1') // F10 - \e[21~
 							yascreen_pushch(s,YAS_K_F10);
 						if (s->ansipos==5&&s->ansibuf[2]=='2'&&s->ansibuf[3]=='3') // F11 - \e[23~
 							yascreen_pushch(s,YAS_K_F11);
 						if (s->ansipos==5&&s->ansibuf[2]=='2'&&s->ansibuf[3]=='4') // F12 - \e[24~
 							yascreen_pushch(s,YAS_K_F12);
+						if (s->ansipos==7&&s->ansibuf[2]=='1'&&s->ansibuf[3]=='1'&&s->ansibuf[4]==';'&&s->ansibuf[5]=='2') // shift-F1 \e[11;2~
+							yascreen_pushch(s,YAS_K_S_F1);
+						if (s->ansipos==7&&s->ansibuf[2]=='1'&&s->ansibuf[3]=='2'&&s->ansibuf[4]==';'&&s->ansibuf[5]=='2') // shift-F2 \e[12;2~
+							yascreen_pushch(s,YAS_K_S_F2);
+						if (s->ansipos==7&&s->ansibuf[2]=='1'&&s->ansibuf[3]=='3'&&s->ansibuf[4]==';'&&s->ansibuf[5]=='2') // shift-F3 \e[13;2~
+							yascreen_pushch(s,YAS_K_S_F3);
+						if (s->ansipos==7&&s->ansibuf[2]=='1'&&s->ansibuf[3]=='4'&&s->ansibuf[4]==';'&&s->ansibuf[5]=='2') // shift-F4 \e[14;2~
+							yascreen_pushch(s,YAS_K_S_F4);
+						if (s->ansipos==7&&s->ansibuf[2]=='1'&&s->ansibuf[3]=='5'&&s->ansibuf[4]==';'&&s->ansibuf[5]=='2') // shift-F5 \e[15;2~
+							yascreen_pushch(s,YAS_K_S_F5);
+						if (s->ansipos==7&&s->ansibuf[2]=='1'&&s->ansibuf[3]=='7'&&s->ansibuf[4]==';'&&s->ansibuf[5]=='2') // shift-F6 \e[17;2~
+							yascreen_pushch(s,YAS_K_S_F6);
+						if (s->ansipos==7&&s->ansibuf[2]=='1'&&s->ansibuf[3]=='8'&&s->ansibuf[4]==';'&&s->ansibuf[5]=='2') // shift-F7 \e[18;2~
+							yascreen_pushch(s,YAS_K_S_F7);
+						if (s->ansipos==7&&s->ansibuf[2]=='1'&&s->ansibuf[3]=='9'&&s->ansibuf[4]==';'&&s->ansibuf[5]=='2') // shift-F8 \e[19;2~
+							yascreen_pushch(s,YAS_K_S_F8);
+						if (s->ansipos==7&&s->ansibuf[2]=='2'&&s->ansibuf[3]=='0'&&s->ansibuf[4]==';'&&s->ansibuf[5]=='2') // shift-F9 \e[20;2~
+							yascreen_pushch(s,YAS_K_S_F9);
+						if (s->ansipos==7&&s->ansibuf[2]=='2'&&s->ansibuf[3]=='1'&&s->ansibuf[4]==';'&&s->ansibuf[5]=='2') // shift-F10 \e[21;2~
+							yascreen_pushch(s,YAS_K_S_F10);
+						if (s->ansipos==7&&s->ansibuf[2]=='2'&&s->ansibuf[3]=='3'&&s->ansibuf[4]==';'&&s->ansibuf[5]=='2') // shift-F11 \e[23;2~
+							yascreen_pushch(s,YAS_K_S_F11);
+						if (s->ansipos==7&&s->ansibuf[2]=='2'&&s->ansibuf[3]=='4'&&s->ansibuf[4]==';'&&s->ansibuf[5]=='2') // shift-F12 \e[24;2~
+							yascreen_pushch(s,YAS_K_S_F12);
 						if (s->ansipos==4&&s->ansibuf[2]=='2') // insert - \e[2~
 							yascreen_pushch(s,YAS_K_INS);
 						if (s->ansipos==4&&s->ansibuf[2]=='3') // delete - \e[3~
@@ -1870,7 +1929,15 @@ inline void yascreen_feed(yascreen *s,unsigned char c) { // {{{
 						if (s->ansipos==4&&(s->ansibuf[2]=='4'||s->ansibuf[2]=='8')) // end - \e[4~ \e[8~
 							yascreen_pushch(s,YAS_K_END);
 						break;
-					case 'R': { // \e[n;mR - cursor position report
+					case 'P': // \e[1;2P - shift-F1
+						if (s->ansipos==6&&s->ansibuf[2]=='1'&&s->ansibuf[3]==';'&&s->ansibuf[4]=='2') // shift-F1 - \e[1;2P
+							yascreen_pushch(s,YAS_K_S_F1);
+						break;
+					case 'Q': // \e[1;2Q - shift-F2
+						if (s->ansipos==6&&s->ansibuf[2]=='1'&&s->ansibuf[3]==';'&&s->ansibuf[4]=='2') // shift-F2 - \e[1;2Q
+							yascreen_pushch(s,YAS_K_S_F2);
+						break;
+					case 'R': { // \e[n;mR - cursor position report, used for screen size detection
 						int sx,sy;
 
 						sscanf((char *)s->ansibuf+2,"%d;%dR",&sy,&sx);
@@ -1879,24 +1946,37 @@ inline void yascreen_feed(yascreen *s,unsigned char c) { // {{{
 							s->scry=sy;
 							s->haveansi=1;
 							yascreen_pushch(s,YAS_SCREEN_SIZE);
-						}
+						} else if (!strcmp((char *)s->ansibuf+2,"1;2R")) // shift-F3 - \e[1;2R
+							yascreen_pushch(s,YAS_K_S_F3);
 						break;
 					}
-					case 'A': // ^up - \e[1;5A
-						if (s->ansipos==6&&s->ansibuf[2]=='1'&&s->ansibuf[3]==';'&&s->ansibuf[4]=='5')
+					case 'S': // \e[1;2S - shift-F4
+						if (s->ansipos==6&&s->ansibuf[2]=='1'&&s->ansibuf[3]==';'&&s->ansibuf[4]=='2') // shift-F4 - \e[1;2S
+							yascreen_pushch(s,YAS_K_S_F4);
+						break;
+					case 'A':
+						if (s->ansipos==6&&s->ansibuf[2]=='1'&&s->ansibuf[3]==';'&&s->ansibuf[4]=='5') // ^up - \e[1;5A
 							yascreen_pushch(s,YAS_K_C_UP);
+						if (s->ansipos==6&&s->ansibuf[2]=='1'&&s->ansibuf[3]==';'&&s->ansibuf[4]=='2') // shift-up - \e[1;2A
+							yascreen_pushch(s,YAS_K_S_UP);
 						break;
-					case 'B': // ^down - \e[1;5B
-						if (s->ansipos==6&&s->ansibuf[2]=='1'&&s->ansibuf[3]==';'&&s->ansibuf[4]=='5')
+					case 'B':
+						if (s->ansipos==6&&s->ansibuf[2]=='1'&&s->ansibuf[3]==';'&&s->ansibuf[4]=='5') // ^down - \e[1;5B
 							yascreen_pushch(s,YAS_K_C_DOWN);
+						if (s->ansipos==6&&s->ansibuf[2]=='1'&&s->ansibuf[3]==';'&&s->ansibuf[4]=='2') // shift-down - \e[1;2B
+							yascreen_pushch(s,YAS_K_S_DOWN);
 						break;
-					case 'C': // ^right - \e[1;5C
-						if (s->ansipos==6&&s->ansibuf[2]=='1'&&s->ansibuf[3]==';'&&s->ansibuf[4]=='5')
+					case 'C':
+						if (s->ansipos==6&&s->ansibuf[2]=='1'&&s->ansibuf[3]==';'&&s->ansibuf[4]=='5') // ^right - \e[1;5C
 							yascreen_pushch(s,YAS_K_C_RIGHT);
+						if (s->ansipos==6&&s->ansibuf[2]=='1'&&s->ansibuf[3]==';'&&s->ansibuf[4]=='2') // shift-right - \e[1;2C
+							yascreen_pushch(s,YAS_K_S_RIGHT);
 						break;
-					case 'D': // ^left - \e[1;5D
-						if (s->ansipos==6&&s->ansibuf[2]=='1'&&s->ansibuf[3]==';'&&s->ansibuf[4]=='5')
+					case 'D':
+						if (s->ansipos==6&&s->ansibuf[2]=='1'&&s->ansibuf[3]==';'&&s->ansibuf[4]=='5') // ^left - \e[1;5D
 							yascreen_pushch(s,YAS_K_C_LEFT);
+						if (s->ansipos==6&&s->ansibuf[2]=='1'&&s->ansibuf[3]==';'&&s->ansibuf[4]=='2') // shift-left - \e[1;2D
+							yascreen_pushch(s,YAS_K_S_LEFT);
 						break;
 				}
 			}
@@ -1914,6 +1994,30 @@ inline void yascreen_feed(yascreen *s,unsigned char c) { // {{{
 					break;
 				case 'S': // F4 \eOS
 					yascreen_pushch(s,YAS_K_F4);
+					break;
+				case 'w': // F5 \eOw
+					yascreen_pushch(s,YAS_K_F5);
+					break;
+				case 'x': // F6 \eOx
+					yascreen_pushch(s,YAS_K_F6);
+					break;
+				case 'y': // F7 \eOy
+					yascreen_pushch(s,YAS_K_F7);
+					break;
+				case 'm': // F8 \eOm
+					yascreen_pushch(s,YAS_K_F8);
+					break;
+				case 't': // F9 \eOt
+					yascreen_pushch(s,YAS_K_F9);
+					break;
+				case 'u': // F10 \eOu
+					yascreen_pushch(s,YAS_K_F10);
+					break;
+				case 'v': // F11 \eOv
+					yascreen_pushch(s,YAS_K_F11);
+					break;
+				case 'l': // F12 \eOl
+					yascreen_pushch(s,YAS_K_F12);
 					break;
 				case 'H': // home \eOH
 					yascreen_pushch(s,YAS_K_HOME);
@@ -1944,9 +2048,10 @@ inline int yascreen_getch_to(yascreen *s,int timeout) { // {{{
 	struct timeval to,*pto=&to;
 	fd_set r;
 
-	memset(&r,0,sizeof r); // make clang static analyzer happier (llvm bug #8920)
 	if (!s)
-		return -1;
+		return YAS_K_NONE;
+
+	memset(&r,0,sizeof r); // make clang static analyzer happier (llvm bug #8920)
 
 	if (s->outcb) // we do not handle the input, so return immediately
 		timeout=-1;
@@ -1973,9 +2078,9 @@ inline int yascreen_getch_to(yascreen *s,int timeout) { // {{{
 			return key;
 		}
 		if (s->outcb)
-			return -1;
+			return YAS_K_NONE;
 		if (STDOUT_FILENO<0)
-			return -1;
+			return YAS_K_NONE;
 		FD_ZERO(&r);
 		FD_SET(STDOUT_FILENO,&r);
 		if (-1!=select(STDOUT_FILENO+1,&r,NULL,NULL,pto)) {
@@ -1988,9 +2093,9 @@ inline int yascreen_getch_to(yascreen *s,int timeout) { // {{{
 		}
 		if (pto&&(timeout>0||s->escto)&&to.tv_sec==0&&to.tv_usec==0) { // return because of timeout
 			if (timeout<0) // nowait is set
-				return -1;
+				return YAS_K_NONE;
 			if (!toms&&timeout>0) // timeout is finished
-				return -1;
+				return YAS_K_NONE;
 			if (!toms)
 				tto=s->escto;
 			else
@@ -2053,7 +2158,7 @@ inline void yascreen_esc_to(yascreen *s,int timeout) { // {{{
 inline int yascreen_peekch(yascreen *s) { // {{{
 	int ch=yascreen_getch_nowait(s);
 
-	if (ch!=-1)
+	if (ch!=YAS_K_NONE)
 		yascreen_ungetch(s,ch);
 	return ch;
 } // }}}
@@ -2091,5 +2196,88 @@ inline void yascreen_line_flush(yascreen *s,int on) { // {{{
 	if (!s)
 		return;
 	s->lineflush=!!on;
+} // }}}
+
+inline wchar_t yascreen_getwch_to(yascreen *s,int timeout) { // {{{
+	int ch;
+
+	if (!s)
+		return YAS_K_NONE;
+	if (!s->isunicode)
+		return YAS_K_NONE;
+
+	ch=yascreen_getch_to(s,timeout);
+
+	if (YAS_IS_CC(ch))
+		return ch;
+	if (ch>=0&&ch<=0x7f)
+		return ch;
+	if ((ch&0xe0)==0xc0) { // 2 byte seq
+		// unicode mode guarantees that we have a valid sequence
+		unsigned char c2=yascreen_getch_nowait(s);
+		wchar_t w;
+
+		w=((ch&0x1f)<<6)|(c2&0x3f);
+		return w;
+	}
+	if ((ch&0xf0)==0xe0) { // 3 byte seq
+		// unicode mode guarantees that we have a valid sequence
+		unsigned char c2=yascreen_getch_nowait(s);
+		unsigned char c3=yascreen_getch_nowait(s);
+		wchar_t w;
+
+		w=((ch&0x0f)<<12)|((c2&0x3f)<<6)|(c3&0x3f);
+		return w;
+	}
+	if ((ch&0xf8)==0xf0) { // 4 byte seq
+		// unicode mode guarantees that we have a valid sequence
+		unsigned char c2=yascreen_getch_nowait(s);
+		unsigned char c3=yascreen_getch_nowait(s);
+		unsigned char c4=yascreen_getch_nowait(s);
+		wchar_t w;
+
+		w=((ch&0x07)<<18)|((c2&0x3f)<<12)|((c3&0x3f)<<6)|(c4&0x3f);
+		return w;
+	}
+	//if ((ch&0xfc)==0xf8) { // 5 byte seq
+	//}
+	//if ((str[i]&0xfe)==0xfc) { // 6 byte seq
+	//}
+	return YAS_K_NONE;
+} // }}}
+
+inline void yascreen_ungetwch(yascreen *s,wchar_t key) { // {{{
+	if (!s)
+		return;
+	if (!s->isunicode)
+		return;
+
+	if (YAS_IS_CC(key))
+		yascreen_ungetch(s,key);
+	else {
+		char ns[MB_CUR_MAX+1];
+		int rc=wctomb(ns,key);
+		int i;
+
+		if (rc<=0)
+			return;
+		for (i=rc-1;i>0;i--)
+			yascreen_ungetch(s,ns[i]);
+	}
+} // }}}
+
+inline wchar_t yascreen_peekwch(yascreen *s) { // {{{
+	wchar_t ch;
+
+	if (!s)
+		return YAS_K_NONE;
+	if (!s->isunicode)
+		return YAS_K_NONE;
+
+	ch=yascreen_getwch_nowait(s);
+
+	if (ch!=YAS_K_NONE)
+		yascreen_ungetwch(s,ch);
+	return ch;
 } // }}}
 

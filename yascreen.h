@@ -1,6 +1,6 @@
-// $Id: yascreen.h,v 1.41 2020/09/30 21:34:45 bbonev Exp $
+// $Id: yascreen.h,v 1.48 2023/01/02 11:35:04 bbonev Exp $
 //
-// Copyright © 2015-2020 Boian Bonev (bbonev@ipacct.com) {{{
+// Copyright © 2015-2023 Boian Bonev (bbonev@ipacct.com) {{{
 //
 // SPDX-License-Identifer: LGPL-3.0-or-later
 //
@@ -12,6 +12,7 @@
 #ifndef ___YASCREEN_H___
 #define ___YASCREEN_H___
 
+#include <stddef.h>
 #include <unistd.h>
 #include <inttypes.h>
 
@@ -55,11 +56,15 @@ extern "C" {
 #define YAS_NOECHO 4
 #define YAS_ONLCR 8
 
-#define YAS_K_ALT(code) (((code)&0xff)|0x200)
+#define YAS_K_ALT(code) (((code)&0xff)+0xf0101)
+
+#define YAS_IS_CC(code) ((code)>=0xf0000&&(code)<=0xffffd)
 
 // key codes
+// first part are 0x00-0x7f and these map directly to ASCII characters, also 1:1 in wchar_t
+// second part are also directly representable in wchar_t, in the 0xf0000-0xffffd reserved range
 typedef enum {
-	YAS_K_NONE=-1, // no key available
+	YAS_K_NONE=0xf0000, // no key available
 	YAS_K_NUL=0x00,
 	YAS_K_C_A=0x01,
 	YAS_K_C_B=0x02,
@@ -194,68 +199,72 @@ typedef enum {
 	YAS_K_BSP=0x7f,
 	// extended keys, send as escape sequences
 	// function keys with ALT/CTRL/SHIFT
-	YAS_K_F1=0x100,
-	YAS_K_F2=0x101,
-	YAS_K_F3=0x102,
-	YAS_K_F4=0x103,
-	YAS_K_F5=0x104,
-	YAS_K_F6=0x105,
-	YAS_K_F7=0x106,
-	YAS_K_F8=0x107,
-	YAS_K_F9=0x108,
-	YAS_K_F10=0x109,
-	YAS_K_F11=0x10a,
-	YAS_K_F12=0x10b,
-	YAS_K_S_F1=0x10c,
-	YAS_K_S_F2=0x10d,
-	YAS_K_S_F3=0x10e,
-	YAS_K_S_F4=0x10f,
-	YAS_K_S_F5=0x110,
-	YAS_K_S_F6=0x111,
-	YAS_K_S_F7=0x112,
-	YAS_K_S_F8=0x113,
-	YAS_K_S_F9=0x114,
-	YAS_K_S_F10=0x115,
-	YAS_K_S_F11=0x116,
-	YAS_K_S_F12=0x117,
-	YAS_K_C_F1=0x118,
-	YAS_K_C_F2=0x119,
-	YAS_K_C_F3=0x11a,
-	YAS_K_C_F4=0x11b,
-	YAS_K_C_F5=0x11c,
-	YAS_K_C_F6=0x11d,
-	YAS_K_C_F7=0x11e,
-	YAS_K_C_F8=0x11f,
-	YAS_K_C_F9=0x120,
-	YAS_K_C_F10=0x121,
-	YAS_K_C_F11=0x122,
-	YAS_K_C_F12=0x123,
-	YAS_K_A_F1=0x124,
-	YAS_K_A_F2=0x125,
-	YAS_K_A_F3=0x126,
-	YAS_K_A_F4=0x127,
-	YAS_K_A_F5=0x128,
-	YAS_K_A_F6=0x129,
-	YAS_K_A_F7=0x12a,
-	YAS_K_A_F8=0x12b,
-	YAS_K_A_F9=0x12c,
-	YAS_K_A_F10=0x12d,
-	YAS_K_A_F11=0x12e,
-	YAS_K_A_F12=0x12f,
-	YAS_K_LEFT=0x130,
-	YAS_K_UP=0x131,
-	YAS_K_DOWN=0x132,
-	YAS_K_RIGHT=0x133,
-	YAS_K_HOME=0x134,
-	YAS_K_END=0x135,
-	YAS_K_PGUP=0x136,
-	YAS_K_PGDN=0x137,
-	YAS_K_INS=0x138,
-	YAS_K_DEL=0x139,
-	YAS_K_C_LEFT=0x13a,
-	YAS_K_C_UP=0x13b,
-	YAS_K_C_DOWN=0x13c,
-	YAS_K_C_RIGHT=0x13d,
+	YAS_K_F1=0xf0001,
+	YAS_K_F2=0xf0002,
+	YAS_K_F3=0xf0003,
+	YAS_K_F4=0xf0004,
+	YAS_K_F5=0xf0005,
+	YAS_K_F6=0xf0006,
+	YAS_K_F7=0xf0007,
+	YAS_K_F8=0xf0008,
+	YAS_K_F9=0xf0009,
+	YAS_K_F10=0xf000a,
+	YAS_K_F11=0xf000b,
+	YAS_K_F12=0xf000c,
+	YAS_K_S_F1=0xf000d,
+	YAS_K_S_F2=0xf000e,
+	YAS_K_S_F3=0xf000f,
+	YAS_K_S_F4=0xf0010,
+	YAS_K_S_F5=0xf0011,
+	YAS_K_S_F6=0xf0012,
+	YAS_K_S_F7=0xf0013,
+	YAS_K_S_F8=0xf0014,
+	YAS_K_S_F9=0xf0015,
+	YAS_K_S_F10=0xf0016,
+	YAS_K_S_F11=0xf0017,
+	YAS_K_S_F12=0xf0018,
+	YAS_K_C_F1=0xf0019,
+	YAS_K_C_F2=0xf001a,
+	YAS_K_C_F3=0xf001b,
+	YAS_K_C_F4=0xf001c,
+	YAS_K_C_F5=0xf001d,
+	YAS_K_C_F6=0xf001e,
+	YAS_K_C_F7=0xf001f,
+	YAS_K_C_F8=0xf0020,
+	YAS_K_C_F9=0xf0021,
+	YAS_K_C_F10=0xf0022,
+	YAS_K_C_F11=0xf0023,
+	YAS_K_C_F12=0xf0024,
+	YAS_K_A_F1=0xf0025,
+	YAS_K_A_F2=0xf0026,
+	YAS_K_A_F3=0xf0027,
+	YAS_K_A_F4=0xf0028,
+	YAS_K_A_F5=0xf0029,
+	YAS_K_A_F6=0xf002a,
+	YAS_K_A_F7=0xf002b,
+	YAS_K_A_F8=0xf002c,
+	YAS_K_A_F9=0xf002d,
+	YAS_K_A_F10=0xf002e,
+	YAS_K_A_F11=0xf002f,
+	YAS_K_A_F12=0xf0030,
+	YAS_K_LEFT=0xf0031,
+	YAS_K_UP=0xf0032,
+	YAS_K_DOWN=0xf0033,
+	YAS_K_RIGHT=0xf0034,
+	YAS_K_HOME=0xf0035,
+	YAS_K_END=0xf0036,
+	YAS_K_PGUP=0xf0037,
+	YAS_K_PGDN=0xf0038,
+	YAS_K_INS=0xf0039,
+	YAS_K_DEL=0xf003a,
+	YAS_K_C_LEFT=0xf003b,
+	YAS_K_C_UP=0xf003c,
+	YAS_K_C_DOWN=0xf003d,
+	YAS_K_C_RIGHT=0xf003e,
+	YAS_K_S_LEFT=0xf003f,
+	YAS_K_S_UP=0xf0040,
+	YAS_K_S_DOWN=0xf0041,
+	YAS_K_S_RIGHT=0xf0042,
 	// ALT+letter
 	YAS_K_A_BT=YAS_K_ALT('`'),
 	YAS_K_A_1=YAS_K_ALT('1'),
@@ -310,8 +319,8 @@ typedef enum {
 	YAS_K_A_x=YAS_K_ALT('x'),
 	YAS_K_A_y=YAS_K_ALT('y'),
 	YAS_K_A_z=YAS_K_ALT('z'),
-	YAS_SCREEN_SIZE=0x800,
-	YAS_TELNET_SIZE=0x801,
+	YAS_SCREEN_SIZE=0xf0701,
+	YAS_TELNET_SIZE=0xf0702,
 } yas_keys;
 
 struct _yascreen;
@@ -324,7 +333,9 @@ inline yascreen *yascreen_init(int sx,int sy);
 inline const char *yascreen_ver(void);
 // change output; if output is NULL, default is to stdout
 inline int yascreen_setout(yascreen *s,ssize_t (*out)(yascreen *s,const void *data,size_t len));
-// enable handling of telnet protocol
+// enable/disable handling of unicode input (enabled by default)
+inline void yascreen_set_unicode(yascreen *s,int on);
+// enable/disable handling of telnet protocol (disabled by default)
 inline void yascreen_set_telnet(yascreen *s,int on);
 // init remote telnet client
 inline void yascreen_init_telnet(yascreen *s);
@@ -423,6 +434,19 @@ inline int yascreen_peekch(yascreen *s);
 inline void yascreen_getsize(yascreen *s,int *sx,int *sy);
 // request terminal to report its size
 inline void yascreen_reqsize(yascreen *s);
+
+// wchar_t input
+// wait for a key, return wchar_t or extended keycode in 0xf0000-0xffffd range
+// wait no more than timeout in milliseconds
+inline wchar_t yascreen_getwch_to(yascreen *s,int timeout);
+// zero timeout=wait forever
+#define yascreen_getwch(s) yascreen_getwch_to(s,0)
+// negative timeout=do not wait
+#define yascreen_getwch_nowait(s) yascreen_getwch_to(s,-1)
+// put back key value in key buffer
+inline void yascreen_ungetwch(yascreen *s,wchar_t key);
+// peek for key without removing it from input queue
+inline wchar_t yascreen_peekwch(yascreen *s);
 
 // hints api
 inline void yascreen_set_hint_i(yascreen *s,int hint);

@@ -1,5 +1,4 @@
-YASCREEN 3 "September 30, 2020" yascreen "User-Manual"
-==================================================
+# YASCREEN 3 "September 30, 2020" yascreen "User-Manual"
 
 # NAME
   yascreen - Yet Another Screen Library (curses replacement for daemons and embedded apps)
@@ -12,19 +11,21 @@ YASCREEN 3 "September 30, 2020" yascreen "User-Manual"
 
 ## Main features
 
-- small footprint
-- does not have external dependencies
-- allows both internal and external event loop
-- allows stdin/stdout or external input/output (can work over socket)
-- supports basic set of telnet sequences, making it suitable for built-in terminal interfaces for daemons
-- supports a limited set of input keystroke sequences
-- fully unicode compatible (parts of this depend on wcwidth in libc)
-- supports utf8 verification of input
-- relies only on a limited subset of ansi/xterm ESC sequences, making it compatible with mostly all modern terminals (inspired by [linenoise](https://github.com/antirez/linenoise))
-- there is no curses API and ancient terminal compatibility, hence less bloat
-- there is no autoconf - there is no need to have one
-- clean API with opaque private data, usable from C/C++
-- easy cross compilation setup (by setting CC, AR, STRIP and RANLIB)
+-   small footprint
+-   does not have external dependencies
+-   allows both internal and external event loop
+-   allows stdin/stdout or external input/output (can work over socket)
+-   supports basic set of telnet sequences, making it suitable for built-in terminal interfaces for daemons
+-   supports a limited set of input keystroke sequences
+-   fully unicode compatible (parts of this depend on wcwidth in libc)
+-   supports utf8 verification of input
+-   supports utf8 input and wide character input
+-   supports non-utf8 input mode
+-   relies only on a limited subset of ansi/xterm ESC sequences, making it compatible with mostly all modern terminals (inspired by [linenoise](https://github.com/antirez/linenoise))
+-   there is no curses API and ancient terminal compatibility, hence less bloat
+-   there is no autoconf - there is no need to have one
+-   clean API with opaque private data, usable from C/C++
+-   easy cross compilation setup (by setting CC, AR, STRIP and RANLIB)
 
 Current development is done on Linux, with additional testing on OpenBSD/FreeBSD; other platforms may need minimal fixes.
 
@@ -41,7 +42,6 @@ Modes of operation can be modified at runtime.
 For terminal use signal handling (`SIGWINCH`) should always be handled by the application.
 
 ## Example initialization for terminal and handling of SIGWINCH
-
 
 ```c
 yascreen *s;
@@ -96,14 +96,11 @@ for (;;) { // main loop
 }
 ```
 
-
-
 For sockets input is handled like option 1 in the example above and yascreen needs to be provided with a callback for output.
 
 In multiprocess mode daemons where `stdin`/`stdout` are redirected to a socket the same model from the example above can be used. Obviously SIGWINCH will work only for terminals and for sockets the screen size can get to be known either via telnet or ASNI sequences.
 
 ## Example initialization for socket with external event loop and telnet sequences processing
-
 
 ```c
 yascreen *s;
@@ -129,16 +126,13 @@ for (;;) { // main loop
 
 ```
 
-API Reference
-=============
+# API Reference
 
-Predefined constants and Helper macros
---------------------------------------
-
+## Predefined constants and Helper macros
 
 Internally style is kept into bitfields in a single integer variable - that includes foreground/background colors, style modifiers (bold, italic, underline, inverse and blink.
 
-**Style codes**
+### Style codes
 
 | Name        | Function  |
 |-------------|-----------|
@@ -149,8 +143,7 @@ Internally style is kept into bitfields in a single integer variable - that incl
 |`YAS_BOLD`   | bold      |
 |`YAS_BLINK`  | blink     |
 
-
-**Color codes**
+### Color codes
 
 | Name           | Color                       |
 |----------------|-----------------------------|
@@ -165,7 +158,7 @@ Internally style is kept into bitfields in a single integer variable - that incl
 |`YAS_FGCOLORDEF`| default terminal foreground |
 |`YAS_BGCOLORDEF`| default terminal background |
 
-**Helper macros**
+### Helper macros
 
 | Name                 | Description                                         |
 |----------------------|-----------------------------------------------------|
@@ -178,17 +171,21 @@ Internally style is kept into bitfields in a single integer variable - that incl
 
 All of the above can be or'ed into attribute, provided that the bits for foreground/background color are all zeroes.
 
-**Key codes**
+### Key codes
 
-- Special, generated internally
+-   Special, generated internally
 
-| Name             | Value | Description           |
-|------------------|------:|-----------------------|
-|`YAS_K_NONE`      |    -1 | no key is available; in time limited mode means that the time limit expired |
-|`YAS_SCREEN_SIZE` | 0x800 | notification for screen size change (may come because of telnet or ANSI sequence) |
-|`YAS_TELNET_SIZE` | 0x801 | notification for screen size change; duplicates the above, may be used to differentiate how screen size change event was generated |
+Previous versions of the library used -1 and 0x100+ for these codes. In order to achieve unicode wide character compatibility and simpler API, the reserved Unicode range 0xf0000-0xffffd is used for the special codes both in narrow and wide character input modes.
 
-- Normal keys
+There is a macro `YAS_IS_CC(code)` that will evaluate to non-zero for the special codes and to zero for normal characters. Note that all ASCII control characters in the range 0x00-0x7f are treated as normal ones.
+
+| Name             | Value   | Description           |
+|------------------|--------:|-----------------------|
+|`YAS_K_NONE`      | 0xf0000 | no key is available; in time limited mode means that the time limit expired |
+|`YAS_SCREEN_SIZE` | 0xf0701 | notification for screen size change (may come because of telnet or ANSI sequence) |
+|`YAS_TELNET_SIZE` | 0xf0702 | notification for screen size change; duplicates the above, may be used to differentiate how screen size change event was generated |
+
+-   Normal keys
 
 | Name             | Value | Description           |
 |------------------|------:|-----------------------|
@@ -200,7 +197,7 @@ All of the above can be or'ed into attribute, provided that the bits for foregro
 |`YAS_K_C_E`       | 0x05  | Ctrl-E |
 |`YAS_K_C_F`       | 0x06  | Ctrl-F |
 |`YAS_K_C_G`       | 0x07  | Ctrl-G |
-|`YAS_K_C_H`       | 0x08  | Ctrl-H; depends on terminal see `YAS_K_BSP`, `YAS_K_C_8` |
+|`YAS_K_C_H`       | 0x08  | Ctrl-H; depends on terminal see YAS-K-BSP and YAS-K-C-8 |
 |`YAS_K_C_I`       | 0x09  | Ctrl-I |
 |`YAS_K_TAB`       | 0x09  | Tab |
 |`YAS_K_C_J`       | 0x0a  | Ctrl-J |
@@ -221,8 +218,8 @@ All of the above can be or'ed into attribute, provided that the bits for foregro
 |`YAS_K_C_X`       | 0x18  | Ctrl-X |
 |`YAS_K_C_Y`       | 0x19  | Ctrl-Y |
 |`YAS_K_C_Z`       | 0x1a  | Ctrl-Z |
-|`YAS_K_ESC`       | 0x1b  | Esc, Ctrl-3; see below; All ANSI sequences start with Esc, this is return after a timeout or double Esc |
-|`YAS_K_C_3`       | 0x1b  | Esc, Ctrl-3; see above; All ANSI sequences start with Esc, this is return after a timeout or double Esc |
+|`YAS_K_ESC`       | 0x1b  | Esc, Ctrl-3; see below; All ANSI sequences start with Esc, this is returned after a timeout or double Esc |
+|`YAS_K_C_3`       | 0x1b  | Esc, Ctrl-3; see above; All ANSI sequences start with Esc, this is returned after a timeout or double Esc |
 |`YAS_K_C_4`       | 0x1c  | Ctrl-4 |
 |`YAS_K_C_5`       | 0x1d  | Ctrl-5 |
 |`YAS_K_C_6`       | 0x1e  | Ctrl-6 |
@@ -256,7 +253,7 @@ All of the above can be or'ed into attribute, provided that the bits for foregro
 |`YAS_K_COLON`     | 0x3a  | : |
 |`YAS_K_SEMI`      | 0x3b  | ; |
 |`YAS_K_LT`        | 0x3c  | < |
-|`YAS_K_EQ`        | 0x3d  | `=` |
+|`YAS_K_EQ`        | 0x3d  | Equal |
 |`YAS_K_GT`        | 0x3e  | > |
 |`YAS_K_QUEST`     | 0x3f  | ? |
 |`YAS_K_AT`        | 0x40  | @ |
@@ -286,12 +283,12 @@ All of the above can be or'ed into attribute, provided that the bits for foregro
 |`YAS_K_X`         | 0x58  | X |
 |`YAS_K_Y`         | 0x59  | Y |
 |`YAS_K_Z`         | 0x5a  | Z |
-|`YAS_K_OSQ`       | 0x5b  | [ |
-|`YAS_K_BSLASH`    | 0x5c  | `\` |
-|`YAS_K_CSQ`       | 0x5d  | ] |
+|`YAS_K_OSQ`       | 0x5b  | OpenSquareBracket |
+|`YAS_K_BSLASH`    | 0x5c  | Backslash |
+|`YAS_K_CSQ`       | 0x5d  | CloseSquareBracket |
 |`YAS_K_CARRET`    | 0x5e  | ^ |
-|`YAS_K_USCORE`    | 0x5f  | `_` |
-|`YAS_K_BTICK`     | 0x60  | \` |
+|`YAS_K_USCORE`    | 0x5f  | Underscore |
+|`YAS_K_BTICK`     | 0x60  | Backtick |
 |`YAS_K_a`         | 0x61  | a |
 |`YAS_K_b`         | 0x62  | b |
 |`YAS_K_c`         | 0x63  | c |
@@ -319,80 +316,84 @@ All of the above can be or'ed into attribute, provided that the bits for foregro
 |`YAS_K_y`         | 0x79  | y |
 |`YAS_K_z`         | 0x7a  | z |
 |`YAS_K_OCUR`      | 0x7b  | { |
-|`YAS_K_PIPE`      | 0x7c  | \| |
+|`YAS_K_PIPE`      | 0x7c  | Pipe |
 |`YAS_K_CCUR`      | 0x7d  | } |
 |`YAS_K_TLD`       | 0x7e  | Tilde |
-|`YAS_K_C_8`       | 0x7f  | Backspace; see below; depends on terminal see `YAS_K_C_H` |
-|`YAS_K_BSP`       | 0x7f  | Backspace; see below; depends on terminal see `YAS_K_C_H` |
+|`YAS_K_C_8`       | 0x7f  | Backspace; see below; depends on terminal see YAS-K-C-H |
+|`YAS_K_BSP`       | 0x7f  | Backspace; see below; depends on terminal see YAS-K-C-H |
 
-- Extended keys, parsed from ANSI sequences
+-   Extended keys, parsed from ANSI sequences
 
-| Name             | Value | Description           |
-|------------------|------:|-----------------------|
-| `YAS_K_F1`       | 0x100 | F1 |
-| `YAS_K_F2`       | 0x101 | F2 |
-| `YAS_K_F3`       | 0x102 | F3 |
-| `YAS_K_F4`       | 0x103 | F4 |
-| `YAS_K_F5`       | 0x104 | F5 |
-| `YAS_K_F6`       | 0x105 | F6 |
-| `YAS_K_F7`       | 0x106 | F7 |
-| `YAS_K_F8`       | 0x107 | F8 |
-| `YAS_K_F9`       | 0x108 | F9 |
-| `YAS_K_F10`      | 0x109 | F10 |
-| `YAS_K_F11`      | 0x10a | F11 |
-| `YAS_K_F12`      | 0x10b | F12 |
-| `YAS_K_S_F1`     | 0x10c | Shift-F1 |
-| `YAS_K_S_F2`     | 0x10d | Shift-F2 |
-| `YAS_K_S_F3`     | 0x10e | Shift-F3 |
-| `YAS_K_S_F4`     | 0x10f | Shift-F4 |
-| `YAS_K_S_F5`     | 0x110 | Shift-F5 |
-| `YAS_K_S_F6`     | 0x111 | Shift-F6 |
-| `YAS_K_S_F7`     | 0x112 | Shift-F7 |
-| `YAS_K_S_F8`     | 0x113 | Shift-F8 |
-| `YAS_K_S_F9`     | 0x114 | Shift-F9 |
-| `YAS_K_S_F10`    | 0x115 | Shift-F10 |
-| `YAS_K_S_F11`    | 0x116 | Shift-F11 |
-| `YAS_K_S_F12`    | 0x117 | Shift-F12 |
-| `YAS_K_C_F1`     | 0x118 | Ctrl-F1 |
-| `YAS_K_C_F2`     | 0x119 | Ctrl-F2 |
-| `YAS_K_C_F3`     | 0x11a | Ctrl-F3 |
-| `YAS_K_C_F4`     | 0x11b | Ctrl-F4 |
-| `YAS_K_C_F5`     | 0x11c | Ctrl-F5 |
-| `YAS_K_C_F6`     | 0x11d | Ctrl-F6 |
-| `YAS_K_C_F7`     | 0x11e | Ctrl-F7 |
-| `YAS_K_C_F8`     | 0x11f | Ctrl-F8 |
-| `YAS_K_C_F9`     | 0x120 | Ctrl-F9 |
-| `YAS_K_C_F10`    | 0x121 | Ctrl-F10 |
-| `YAS_K_C_F11`    | 0x122 | Ctrl-F11 |
-| `YAS_K_C_F12`    | 0x123 | Ctrl-F12 |
-| `YAS_K_A_F1`     | 0x124 | Alt-F1 |
-| `YAS_K_A_F2`     | 0x125 | Alt-F2 |
-| `YAS_K_A_F3`     | 0x126 | Alt-F3 |
-| `YAS_K_A_F4`     | 0x127 | Alt-F4 |
-| `YAS_K_A_F5`     | 0x128 | Alt-F5 |
-| `YAS_K_A_F6`     | 0x129 | Alt-F6 |
-| `YAS_K_A_F7`     | 0x12a | Alt-F7 |
-| `YAS_K_A_F8`     | 0x12b | Alt-F8 |
-| `YAS_K_A_F9`     | 0x12c | Alt-F9 |
-| `YAS_K_A_F10`    | 0x12d | Alt-F10 |
-| `YAS_K_A_F11`    | 0x12e | Alt-F11 |
-| `YAS_K_A_F12`    | 0x12f | Alt-F12 |
-| `YAS_K_LEFT`     | 0x130 | Left |
-| `YAS_K_UP`       | 0x131 | Up |
-| `YAS_K_DOWN`     | 0x132 | Down |
-| `YAS_K_RIGHT`    | 0x133 | Right |
-| `YAS_K_HOME`     | 0x134 | Home |
-| `YAS_K_END`      | 0x135 | End |
-| `YAS_K_PGUP`     | 0x136 | PageUp |
-| `YAS_K_PGDN`     | 0x137 | PageDown |
-| `YAS_K_INS`      | 0x138 | Insert |
-| `YAS_K_DEL`      | 0x139 | Delete |
-| `YAS_K_C_LEFT`   | 0x13a | Ctrl-Left |
-| `YAS_K_C_UP`     | 0x13b | Ctrl-Up |
-| `YAS_K_C_DOWN`   | 0x13c | Ctrl-Down |
-| `YAS_K_C_RIGHT`  | 0x13d | Ctrl-Right |
+| Name             | Value   | Description           |
+|------------------|--------:|-----------------------|
+| `YAS_K_F1`       | 0xf0001 | F1 |
+| `YAS_K_F2`       | 0xf0002 | F2 |
+| `YAS_K_F3`       | 0xf0003 | F3 |
+| `YAS_K_F4`       | 0xf0004 | F4 |
+| `YAS_K_F5`       | 0xf0005 | F5 |
+| `YAS_K_F6`       | 0xf0006 | F6 |
+| `YAS_K_F7`       | 0xf0007 | F7 |
+| `YAS_K_F8`       | 0xf0008 | F8 |
+| `YAS_K_F9`       | 0xf0009 | F9 |
+| `YAS_K_F10`      | 0xf000a | F10 |
+| `YAS_K_F11`      | 0xf000b | F11 |
+| `YAS_K_F12`      | 0xf000c | F12 |
+| `YAS_K_S_F1`     | 0xf000d | Shift-F1 |
+| `YAS_K_S_F2`     | 0xf000e | Shift-F2 |
+| `YAS_K_S_F3`     | 0xf000f | Shift-F3 |
+| `YAS_K_S_F4`     | 0xf0010 | Shift-F4 |
+| `YAS_K_S_F5`     | 0xf0011 | Shift-F5 |
+| `YAS_K_S_F6`     | 0xf0012 | Shift-F6 |
+| `YAS_K_S_F7`     | 0xf0013 | Shift-F7 |
+| `YAS_K_S_F8`     | 0xf0014 | Shift-F8 |
+| `YAS_K_S_F9`     | 0xf0015 | Shift-F9 |
+| `YAS_K_S_F10`    | 0xf0016 | Shift-F10 |
+| `YAS_K_S_F11`    | 0xf0017 | Shift-F11 |
+| `YAS_K_S_F12`    | 0xf0018 | Shift-F12 |
+| `YAS_K_C_F1`     | 0xf0019 | Ctrl-F1 |
+| `YAS_K_C_F2`     | 0xf001a | Ctrl-F2 |
+| `YAS_K_C_F3`     | 0xf001b | Ctrl-F3 |
+| `YAS_K_C_F4`     | 0xf001c | Ctrl-F4 |
+| `YAS_K_C_F5`     | 0xf001d | Ctrl-F5 |
+| `YAS_K_C_F6`     | 0xf001e | Ctrl-F6 |
+| `YAS_K_C_F7`     | 0xf001f | Ctrl-F7 |
+| `YAS_K_C_F8`     | 0xf0020 | Ctrl-F8 |
+| `YAS_K_C_F9`     | 0xf0021 | Ctrl-F9 |
+| `YAS_K_C_F10`    | 0xf0022 | Ctrl-F10 |
+| `YAS_K_C_F11`    | 0xf0023 | Ctrl-F11 |
+| `YAS_K_C_F12`    | 0xf0024 | Ctrl-F12 |
+| `YAS_K_A_F1`     | 0xf0025 | Alt-F1 |
+| `YAS_K_A_F2`     | 0xf0026 | Alt-F2 |
+| `YAS_K_A_F3`     | 0xf0027 | Alt-F3 |
+| `YAS_K_A_F4`     | 0xf0028 | Alt-F4 |
+| `YAS_K_A_F5`     | 0xf0029 | Alt-F5 |
+| `YAS_K_A_F6`     | 0xf002a | Alt-F6 |
+| `YAS_K_A_F7`     | 0xf002b | Alt-F7 |
+| `YAS_K_A_F8`     | 0xf002c | Alt-F8 |
+| `YAS_K_A_F9`     | 0xf002d | Alt-F9 |
+| `YAS_K_A_F10`    | 0xf002e | Alt-F10 |
+| `YAS_K_A_F11`    | 0xf002f | Alt-F11 |
+| `YAS_K_A_F12`    | 0xf0030 | Alt-F12 |
+| `YAS_K_LEFT`     | 0xf0031 | Left |
+| `YAS_K_UP`       | 0xf0032 | Up |
+| `YAS_K_DOWN`     | 0xf0033 | Down |
+| `YAS_K_RIGHT`    | 0xf0034 | Right |
+| `YAS_K_HOME`     | 0xf0035 | Home |
+| `YAS_K_END`      | 0xf0036 | End |
+| `YAS_K_PGUP`     | 0xf0037 | PageUp |
+| `YAS_K_PGDN`     | 0xf0038 | PageDown |
+| `YAS_K_INS`      | 0xf0039 | Insert |
+| `YAS_K_DEL`      | 0xf003a | Delete |
+| `YAS_K_C_LEFT`   | 0xf003b | Ctrl-Left |
+| `YAS_K_C_UP`     | 0xf003c | Ctrl-Up |
+| `YAS_K_C_DOWN`   | 0xf003d | Ctrl-Down |
+| `YAS_K_C_RIGHT`  | 0xf003e | Ctrl-Right |
+| `YAS_K_S_LEFT`   | 0xf003f | Shift-Left |
+| `YAS_K_S_UP`     | 0xf0040 | Shift-Up |
+| `YAS_K_S_DOWN`   | 0xf0041 | Shift-Down |
+| `YAS_K_S_RIGHT`  | 0xf0042 | Shift-Right |
 
-- Alt-<letter>
+-   Alt-\<letter\>
 
 These codes are generated by a helper macro - `YAS_K_ALT(keycode)`.
 
@@ -420,7 +421,7 @@ These codes are generated by a helper macro - `YAS_K_ALT(keycode)`.
 | `YAS_K_A_PERC`   | Alt-% |
 | `YAS_K_A_CARRET` | Alt-^ |
 | `YAS_K_A_AND`    | Alt-Ampersand |
-| `YAS_K_A_STAR`   | Alt-\* |
+| `YAS_K_A_STAR`   | Alt-Star |
 | `YAS_K_A_OBRA`   | Alt-( |
 | `YAS_K_A_CBRA`   | Alt-) |
 | `YAS_K_A_UND`    | Alt-_ |
@@ -452,9 +453,7 @@ These codes are generated by a helper macro - `YAS_K_ALT(keycode)`.
 | `YAS_K_A_y`      | Alt-y |
 | `YAS_K_A_z`      | Alt-z |
 
-
-Functions
----------
+## Functions
 
 All functions in the API work with a pointer to an opaque `yascreen` structure.
 
@@ -462,15 +461,15 @@ The structure is allocated internally in the library by `yascreen_init` and it i
 
 The library is thread safe, as long as each `struct yascreen` object is accessed by a single thread.
 
-
-
 ### yascreen\_init
 ```c
 inline yascreen *yascreen_init(int sx,int sy);
 ```
 
 allocate and initialize screen data
+
 output defaults to stdout
+
 in case output is a terminal and initial size is (0,0), the screen size is autodetected
 
 in case of error, returns `NULL`
@@ -488,9 +487,21 @@ inline int yascreen_setout(yascreen *s,ssize_t (*out)(yascreen *s,const void *da
 ```
 
 set callback that handles output
+
 if out=NULL, the output goes to `stdout`
 
 the callback may implement internal buffering, a flush is signalled by calling `out` with len=0
+
+### yascreen\_set\_unicode
+```c
+inline void yascreen_set_unicode(yascreen *s,int on);
+```
+
+enable (on is non-zero) or disable (on=0) unicode input processing
+
+by default unicode mode is on
+
+changing the unicode input processing will flush all pending input
 
 ### yascreen\_set\_telnet
 ```c
@@ -498,6 +509,8 @@ inline void yascreen_set_telnet(yascreen *s,int on);
 ```
 
 enable (on is non-zero) or disable (on=0) telnet sequence processing
+
+by default telnet mode is off
 
 ### yascreen\_init\_telnet
 ```c
@@ -512,7 +525,9 @@ inline int yascreen_resize(yascreen *s,int sx,int sy);
 ```
 
 resize screen
+
 should redraw afterwards
+
 since allocation is involved, this may fail and return -1
 
 ### yascreen\_free
@@ -561,10 +576,10 @@ set terminal for proper screen operation
 
 | Name             | Value | Description           |
 |------------------|------:|-----------------------|
-| `YAS_NOBUFF`     |     1 | turn off canonical mode (disable `ICANON` and `IEXTEN`) |
-| `YAS_NOSIGN`     |     2 | disable `ISIG` |
-| `YAS_NOECHO`     |     4 | disable local echo (`ECHO`) |
-| `YAS_ONLCR`      |     8 | `ONLCR`\|`OPOST` |
+| `YAS_NOBUFF`     |     1 | turn off canonical mode (disable ICANON and IEXTEN) |
+| `YAS_NOSIGN`     |     2 | disable ISIG |
+| `YAS_NOECHO`     |     4 | disable local echo (ECHO) |
+| `YAS_ONLCR`      |     8 | ONLCR or OPOST |
 
 ### yascreen\_printxy
 ```c
@@ -587,6 +602,7 @@ inline int yascreen_putsxyu(yascreen *s,int x,int y,uint32_t attr,const char *st
 ```
 
 print at position, if data exceeds buffer, then it gets truncated
+
 screen is immediately updated
 
 ### yascreen\_update
@@ -595,6 +611,7 @@ inline int yascreen_update(yascreen *s);
 ```
 
 sync memory state to screen
+
 since allocation is involved, this may fail and return -1
 
 ### yascreen\_redraw
@@ -610,6 +627,7 @@ inline void yascreen_clear_mem(yascreen *s,uint32_t attr);
 ```
 
 clear memory buffer
+
 all cells in the screen are set to `Space`, using `attr` for colors and style
 
 ### yascreen\_cursor
@@ -618,6 +636,7 @@ inline void yascreen_cursor(yascreen *s,int on);
 ```
 
 hide (`on`=0) or show (`on` is non-zero) cusror
+
 screen is updated immediately
 
 ### yascreen\_cursor\_xy
@@ -626,6 +645,7 @@ inline void yascreen_cursor_xy(yascreen *s,int x,int y);
 ```
 
 set cursor position
+
 screen is updated immediately
 
 ### yascreen\_altbuf
@@ -634,6 +654,7 @@ inline void yascreen_altbuf(yascreen *s,int on);
 ```
 
 switch between regular and alternative buffer
+
 screen is updated immediately
 
 ### yascreen\_clear
@@ -656,7 +677,9 @@ inline void yascreen_update_attr(yascreen *s,uint32_t oattr,uint32_t nattr);
 ```
 
 apply difference between two attrs and output the optimized ANSI sequence to switch from `oattr` to `nattr`
+
 if `oattr`=0xffffffff, the full ANSI sequence will be generated
+
 no change to memory buffers
 
 ### yascreen\_set\_attr
@@ -726,8 +749,11 @@ inline void yascreen_ckto(yascreen *s);
 ```
 
 in case of external event loop, this call will check for single ESC key
+
 should be called regularly enough so that the above specified timeout is not extended too much
+
 if not called often enough then single ESC will be yielded after longer timeout
+
 if not called at all then single ESC will be yielded with next key press
 
 ### yascreen\_getch\_to
@@ -743,7 +769,9 @@ yascreen_getch(s)
 ```
 
 get a key without timeout
+
 this macro expands to `yascreen_getch_to(s,0)`
+
 zero timeout=wait forever
 
 ### yascreen\_getch\_nowait
@@ -752,7 +780,9 @@ yascreen_getch_nowait(s)
 ```
 
 get a key, if available, return immediately
+
 this macro expands to `yascreen_getch_to(s,-1)`
+
 negative timeout=do not wait
 
 ### yascreen\_ungetch
@@ -761,6 +791,7 @@ inline void yascreen_ungetch(yascreen *s,int key);
 ```
 
 put back key value in key buffer
+
 the internal key buffer is dynamically allocated, hence there is no limit of how many key codes may be put back, but in case of memory allocation failure, the error will not be reported and the key will not be put into the buffer
 
 ### yascreen\_pushch
@@ -769,7 +800,9 @@ inline void yascreen_pushch(yascreen *s,int key);
 ```
 
 push key value at end of key buffer
+
 similar to `yascreen_ungetch` but the `key` code will be returned after all other key codes currently in the buffer
+
 the internal key buffer is dynamically allocated, hence there is no limit of how many key codes may be put back, but in case of memory allocation failure, the error will not be reported and the key will not be put into the buffer
 
 ### yascreen\_feed
@@ -778,6 +811,7 @@ inline void yascreen_feed(yascreen *s,unsigned char c);
 ```
 
 feed key sequence state machine with byte stream
+
 this is useful to implement external event loop and read key codes by `yascreen_getch_nowait` until it returns -1
 
 ### yascreen\_peekch
@@ -793,7 +827,9 @@ inline void yascreen_getsize(yascreen *s,int *sx,int *sy);
 ```
 
 get last reported screen size
+
 set both to 0 if there is none
+
 this will yield valid result after `YAS_SCREEN_SIZE` is returned as keypress
 
 ### yascreen\_reqsize
@@ -821,6 +857,7 @@ inline void *yascreen_get_hint_p(yascreen *s);
 ```
 
 get/set opaque hint values
+
 integer and pointer hints are stored separately and both can be used at the same time
 
 these are useful to link the `yascreen` instance to user program data
@@ -843,3 +880,62 @@ explicit flush example:
 ```c
 yascreen_write(s,"",0);
 ```
+
+### yascreen\_getwch\_to
+```c
+inline wchar_t yascreen_getwch_to(yascreen *s,int timeout);
+```
+
+wait for a key, return wide character or extended keycode, wait no more than timeout in milliseconds
+
+`yascreen_getwch_to` does not work in non-unicode mode and will always return `YAS_K_NONE`
+
+mixing the utf8 and wide character input modes will break on multibyte utf8 sequences and is not supported
+
+### yascreen\_getwch
+```c
+yascreen_getwch(s)
+```
+
+get a key as wide character without timeout
+
+this macro expands to `yascreen_getwch_to(s,0)`
+
+zero timeout=wait forever
+
+`yascreen_getwch` does not work in non-unicode mode and will always return `YAS_K_NONE`
+
+### yascreen\_getwch\_nowait
+```c
+yascreen_getwch_nowait(s)
+```
+
+get a key as a wide character, if available, return immediately
+
+this macro expands to `yascreen_getwch_to(s,-1)`
+
+negative timeout=do not wait
+
+`yascreen_getwch_nowait` does not work in non-unicode mode and will always return `YAS_K_NONE`
+
+### yascreen\_ungetwch
+```c
+inline void yascreen_ungetwch(yascreen *s,wchar_t key);
+```
+
+put back wide character key value in key buffer
+
+the internal key buffer is dynamically allocated, hence there is no limit of how many key codes may be put back, but in case of memory allocation failure, the error will not be reported and the key will not be put into the buffer
+
+the internal key buffer contains utf8 and the wide character will be expanded to the appropriate utf8 sequence
+
+`yascreen_ungetwch` does not do anything in non-unicode mode
+
+### yascreen\_peekwch
+```c
+inline wchar_t yascreen_peekwch(yascreen *s);
+```
+
+peek for key without removing it from input queue
+
+`yascreen_peekwch` does not work in non-unicode mode and will always return `YAS_K_NONE`
