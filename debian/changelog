@@ -1,8 +1,11 @@
-yascreen (1.88-1) UNRELEASED; urgency=medium
+yascreen (1.91-1) unstable; urgency=medium
 
   * Update standards to 4.6.2, no changes
+  * Update to new upstream release of 1.91
+    - wide char input
+    - soname bump
 
- -- Boian Bonev <bbonev@ipacct.com>  Sat, 17 Dec 2022 21:09:33 +0000
+ -- Boian Bonev <bbonev@ipacct.com>  Mon, 02 Jan 2023 11:25:38 +0000
 
 yascreen (1.86-1) unstable; urgency=medium
 
