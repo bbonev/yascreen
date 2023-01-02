@@ -1,7 +1,7 @@
-yascreen (1.91-1) unstable; urgency=medium
+yascreen (1.92-1) unstable; urgency=medium
 
   * Update standards to 4.6.2, no changes
-  * Update to new upstream release of 1.91
+  * Update to new upstream release of 1.92
     - wide char input
     - soname bump
 
