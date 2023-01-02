@@ -77,6 +77,9 @@ rm -f $RPM_BUILD_ROOT%{_libdir}/libyascreen.a
 * Mon Jan 2 2023 Boian Bonev <bbonev@ipacct.com> - 1.92-1
 - Update to latest ver 1.92
 
+* Sat Jul 23 2022 Fedora Release Engineering <releng@fedoraproject.org> - 1.86-3
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_37_Mass_Rebuild
+
 * Sat Jan 22 2022 Fedora Release Engineering <releng@fedoraproject.org> - 1.86-2
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_36_Mass_Rebuild
 
