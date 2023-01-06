@@ -1,4 +1,4 @@
-yascreen (1.92-1) unstable; urgency=medium
+yascreen (1.92-1~exp1) experimental; urgency=medium
 
   * Update standards to 4.6.2, no changes
   * Update to new upstream release of 1.92
