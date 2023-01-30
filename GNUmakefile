@@ -2,7 +2,7 @@
 ##################### GNUmakefile is preferred by GNU make #####################
 ################################################################################
 #
-# Copyright © 2015-2020 Boian Bonev (bbonev@ipacct.com) {{{
+# Copyright © 2015-2023 Boian Bonev (bbonev@ipacct.com) {{{
 #
 # SPDX-License-Identifer: LGPL-3.0-or-later
 #

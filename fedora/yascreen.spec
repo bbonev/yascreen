@@ -1,5 +1,5 @@
 Name:           yascreen
-Version:        1.86
+Version:        1.92
 Release:        1%{?dist}
 Summary:        Yet Another Screen Library (lib(n)curses alternative)
 
@@ -58,7 +58,7 @@ NO_FLTO=1 DEBUG="" %make_build PREFIX=%{_prefix} LIBDIR=/%{_lib}/
 %install
 %make_install INSTALL+=" --strip-program=true" PREFIX=%{_prefix} LIBDIR=/%{_lib}/
 # allow debug info to be generated
-chmod +x $RPM_BUILD_ROOT%{_libdir}/libyascreen.so.0.0.0
+chmod +x $RPM_BUILD_ROOT%{_libdir}/libyascreen.so.1.0.0
 # remove unpackaged static library
 rm -f $RPM_BUILD_ROOT%{_libdir}/libyascreen.a
 
@@ -74,8 +74,23 @@ rm -f $RPM_BUILD_ROOT%{_libdir}/libyascreen.a
 %{_includedir}/yascreen.h
 
 %changelog
+* Mon Jan 2 2023 Boian Bonev <bbonev@ipacct.com> - 1.92-1
+- Update to latest ver 1.92
+
+* Sat Jul 23 2022 Fedora Release Engineering <releng@fedoraproject.org> - 1.86-3
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_37_Mass_Rebuild
+
+* Sat Jan 22 2022 Fedora Release Engineering <releng@fedoraproject.org> - 1.86-2
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_36_Mass_Rebuild
+
 * Tue Sep 7 2021 Boian Bonev <bbonev@ipacct.com> - 1.86-1
 - Update to latest ver 1.86
+
+* Fri Jul 23 2021 Fedora Release Engineering <releng@fedoraproject.org> - 1.85-4
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_35_Mass_Rebuild
+
+* Thu Jan 28 2021 Fedora Release Engineering <releng@fedoraproject.org> - 1.85-3
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_34_Mass_Rebuild
 
 * Sun Dec 6 2020 Boian Bonev <bbonev@ipacct.com> - 1.85-1
 - Initial packaging for Fedora

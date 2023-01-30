@@ -1,6 +1,6 @@
 ############################# configurable section #############################
 #
-# Copyright © 2015-2020 Boian Bonev (bbonev@ipacct.com) {{{
+# Copyright © 2015-2023 Boian Bonev (bbonev@ipacct.com) {{{
 #
 # SPDX-License-Identifer: LGPL-3.0-or-later
 #
@@ -35,8 +35,8 @@ VER=$(shell grep Revision yascreen.c|head -n1|sed -e 's/.\+Revision: \([0-9.]\+\
 
 # shared library version
 
-SOVERM:=0
-SOVERF:=0.0.0
+SOVERM:=1
+SOVERF:=1.0.0
 
 # change options based on flto configuration
 
@@ -107,17 +107,18 @@ yascreen.pc: yascreen.pc.in
 	< $< > $@
 
 install: libyascreen.a libyascreen.so yascreen.pc yascreen.3
-	$(INSTALL) -Ds -m 644 -t $(DESTDIR)$(PREFIX)$(LIBDIR) libyascreen.a
-	$(INSTALL) -Ds -m 644 -t $(DESTDIR)$(PREFIX)$(LIBDIR)/pkgconfig/ yascreen.pc
+	$(INSTALL) -Ds -m 0644 -t $(DESTDIR)$(PREFIX)$(LIBDIR) libyascreen.a
+	$(INSTALL) -D -m 0644 -t $(DESTDIR)$(PREFIX)$(LIBDIR)/pkgconfig/ yascreen.pc
 	ln -fs libyascreen.so.$(SOVERF) $(DESTDIR)$(PREFIX)$(LIBDIR)libyascreen.so.$(SOVERM)
 	ln -fs libyascreen.so.$(SOVERM) $(DESTDIR)$(PREFIX)$(LIBDIR)libyascreen.so
-	$(INSTALL) -Ds -m 644 -s -t $(DESTDIR)$(PREFIX)$(LIBDIR) libyascreen.so.$(SOVERF)
-	$(INSTALL) -Ds -m 644 -t $(DESTDIR)$(PREFIX)$(INCDIR) yascreen.h
-	$(INSTALL) -TDs -m 0644 yascreen.3 $(DESTDIR)$(PREFIX)/share/man/man3/yascreen.3
+	$(INSTALL) -Ds -m 0644 -t $(DESTDIR)$(PREFIX)$(LIBDIR) libyascreen.so.$(SOVERF)
+	$(INSTALL) -D -m 0644 -t $(DESTDIR)$(PREFIX)$(INCDIR) yascreen.h
+	$(INSTALL) -D -m 0644 yascreen.3 $(DESTDIR)$(PREFIX)/share/man/man3/yascreen.3
 
 clean:
 	rm -f yastest yastest.shared yastest.o yascreen.o libyascreen.a libyascreen.so libyascreen.so.$(SOVERM) libyascreen.so.$(SOVERF) yascreen.pc
 
+re: rebuild
 rebuild:
 	$(MAKE) clean
 	$(MAKE) -j all
@@ -143,4 +144,4 @@ mkotar:
 yascreen.3: README.md
 	go-md2man  < README.md  > yascreen.3
 
-.PHONY: install clean rebuild all
+.PHONY: install clean rebuild re all mkotar
