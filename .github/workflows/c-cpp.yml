@@ -21,7 +21,7 @@ jobs:
           - clang
     runs-on: ubuntu-latest
     env:
-      - CC: ${{ matrix.compiler }}
+      CC: ${{ matrix.compiler }}
     steps:
     - uses: actions/checkout@v3
     - name: Build
