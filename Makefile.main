@@ -142,6 +142,6 @@ mkotar:
 	cp -fa ../yascreen_$(VER).orig.tar.xz.asc ../yascreen-$(VER).tar.xz.asc
 
 yascreen.3: README.md
-	go-md2man  < README.md  > yascreen.3
+	go-md2man < README.md > yascreen.3
 
 .PHONY: install clean rebuild re all mkotar
