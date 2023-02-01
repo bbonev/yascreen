@@ -15,7 +15,7 @@ Section: libdevel
 Multi-Arch: same
 Architecture: any
 Depends:
- libyascreen1 (= ${binary:Version}),
+ libyascreen0 (= ${binary:Version}),
  ${misc:Depends},
 Description: Yet Another Screen Library (lib(n)curses alternative)
  Development files of Yet Another Screen Library - lib(n)curses alternative
@@ -40,7 +40,7 @@ Description: Yet Another Screen Library (lib(n)curses alternative)
   * there is no curses API and ancient terminal compatibility, hence less bloat
   * clean API with opaque private data, usable from C/C++
 
-Package: libyascreen1
+Package: libyascreen0
 Multi-Arch: same
 Architecture: any
 Depends:
