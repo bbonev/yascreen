@@ -35,18 +35,26 @@ VER=$(shell grep Revision yascreen.c|head -n1|sed -e 's/.\+Revision: \([0-9.]\+\
 
 # shared library version
 
-SOVERM:=1
-SOVERF:=1.0.0
+SOVERM:=0
+SOVERF:=0.0.0
 
 # change options based on flto configuration
 
 ifndef NO_FLTO
-CCOPT:=-Wall -Wextra -I. --std=gnu89 -fPIC -flto
+CCOPT:=-Wall -Wextra -I. --std=gnu89 -fPIC -flto=auto
 else
 CCOPT:=-Wall -Wextra -I. --std=gnu89 -fPIC
 endif
 
+# build versioned library by default
+
+ifndef NO_VERSIONED
+CCOPT+=-DYASCREEN_VERSIONED=1
 LDOPT:=-Wl,--version-script,yascreen.vers
+else
+CCOPT+=-DYASCREEN_VERSIONED=0
+endif
+
 SONAME:=-Wl,-soname,libyascreen.so.$(SOVERM)
 
 ifeq ($(shell uname -s),Darwin)
@@ -95,7 +103,7 @@ libyascreen.so: libyascreen.so.$(SOVERM)
 libyascreen.so.$(SOVERM): libyascreen.so.$(SOVERF)
 	ln -fs $^ $@
 
-libyascreen.so.$(SOVERF): yascreen.o
+libyascreen.so.$(SOVERF): yascreen.o yascreen.vers
 	$(CC) $(MYCFLAGS) $(MYLDFLAGS) -o $@ $< -fPIC -shared $(SONAME)
 
 yascreen.pc: yascreen.pc.in
