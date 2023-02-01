@@ -1,4 +1,4 @@
-// $Id: yascreen.c,v 1.92 2023/01/02 11:35:04 bbonev Exp $
+// $Id: yascreen.c,v 1.94 2023/02/01 18:39:33 bbonev Exp $
 //
 // Copyright © 2015-2023 Boian Bonev (bbonev@ipacct.com) {{{
 //
@@ -291,7 +291,7 @@ inline void *yascreen_get_hint_p(yascreen *s) { // {{{
 	return s->phint;
 } // }}}
 
-static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 1.92 $\n\n"; // {{{
+static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 1.94 $\n\n"; // {{{
 // }}}
 
 inline const char *yascreen_ver(void) { // {{{
@@ -1511,545 +1511,13 @@ static inline int yascreen_feed_telnet(yascreen *s,unsigned char c) { // {{{
 	return TELNET_NOOP;
 } // }}}
 
-inline void yascreen_feed(yascreen *s,unsigned char c) { // {{{
-	if (!s)
-		return;
-
-	yascreen_ckto(s);
-	if (s->istelnet) { // process telnet codes
-		int tc=yascreen_feed_telnet(s,c);
-
-		switch (tc) {
-			case 0x00 ... 0xff: // normal character
-				c=(unsigned char)tc;
-				break;
-			default:
-			case TELNET_NOOP: // byte is eaten w/o valid input
-				return;
-			case TELNET_SIZE: // notify about screen size change
-				yascreen_pushch(s,YAS_TELNET_SIZE);
-				return;
-		}
-	}
-
-	switch (s->state) {
-		case ST_ENTER:
-			if (c=='\n'||c==0) // ignore LF or NUL after CR
-				break;
-			s->state=ST_NORM;
-			// fall through
-		case ST_NORM:
-			if (c==YAS_K_ESC) { // handle esc sequences
-				s->escts=mytime();
-				s->ansipos=1;
-				s->ansibuf[0]=c;
-				s->state=ST_ESC;
-			} else { // handle standard keys
-				if (c=='\r') // shift state to ST_ENTER to eat optional LF/NUL after CR
-					s->state=ST_ENTER;
-				if (!s->isunicode) { // do not process unicode sequences, push the byte as-is
-					yascreen_pushch(s,c);
-					break;
-				}
-				switch (s->ustate) {
-					case U_NORM:
-						if (c&0x80) {
-							if ((c&0xc0)==0x80) // unexpected continuation byte - ignore
-								break;
-						startbyte:
-							if ((c&0xe0)==0xc0) { // 2 byte seq
-								s->utf[0]=c;
-								s->ustate=U_L2C1;
-								break;
-							}
-							if ((c&0xf0)==0xe0) { // 3 byte seq
-								s->utf[0]=c;
-								s->ustate=U_L3C1;
-								break;
-							}
-							if ((c&0xf8)==0xf0) { // 4 byte seq
-								s->utf[0]=c;
-								s->ustate=U_L4C1;
-								break;
-							}
-							if ((c&0xfc)==0xf8) { // 5 byte seq
-								//s->utf[0]=c;
-								s->ustate=U_L5C1;
-								break;
-							}
-							if ((c&0xfe)==0xfc) { // 6 byte seq
-								//s->utf[0]=c;
-								s->ustate=U_L6C1;
-								break;
-							}
-							// pass 0xff and 0xfe - violates rfc
-							yascreen_pushch(s,c);
-							s->ustate=U_NORM; // in case we come from unexpected start byte
-						} else
-							yascreen_pushch(s,c);
-						break;
-					case U_L2C1:
-						if ((c&0xc0)==0x80) { // continuation byte
-							yascreen_pushch(s,s->utf[0]);
-							yascreen_pushch(s,c);
-							s->ustate=U_NORM;
-							break;
-						}
-						if (c&0x80) // start another sequence
-							goto startbyte;
-						s->ustate=U_NORM; // normal byte kills current sequence and is processed
-						yascreen_pushch(s,c);
-						break;
-					case U_L3C1:
-						if ((c&0xc0)==0x80) { // continuation byte
-							s->utf[1]=c;
-							s->ustate=U_L3C2;
-							break;
-						}
-						if (c&0x80) // start another sequence
-							goto startbyte;
-						s->ustate=U_NORM; // normal byte kills current sequence and is processed
-						yascreen_pushch(s,c);
-						break;
-					case U_L3C2:
-						if ((c&0xc0)==0x80) { // continuation byte
-							yascreen_pushch(s,s->utf[0]);
-							yascreen_pushch(s,s->utf[1]);
-							yascreen_pushch(s,c);
-							s->ustate=U_NORM;
-							break;
-						}
-						if (c&0x80) // start another sequence
-							goto startbyte;
-						s->ustate=U_NORM; // normal byte kills current sequence and is processed
-						yascreen_pushch(s,c);
-						break;
-					case U_L4C1:
-						if ((c&0xc0)==0x80) { // continuation byte
-							s->utf[1]=c;
-							s->ustate=U_L4C2;
-							break;
-						}
-						if (c&0x80) // start another sequence
-							goto startbyte;
-						s->ustate=U_NORM; // normal byte kills current sequence and is processed
-						yascreen_pushch(s,c);
-						break;
-					case U_L4C2:
-						if ((c&0xc0)==0x80) { // continuation byte
-							s->utf[2]=c;
-							s->ustate=U_L4C3;
-							break;
-						}
-						if (c&0x80) // start another sequence
-							goto startbyte;
-						s->ustate=U_NORM; // normal byte kills current sequence and is processed
-						yascreen_pushch(s,c);
-						break;
-					case U_L4C3:
-						if ((c&0xc0)==0x80) { // continuation byte
-							yascreen_pushch(s,s->utf[0]);
-							yascreen_pushch(s,s->utf[1]);
-							yascreen_pushch(s,s->utf[2]);
-							yascreen_pushch(s,c);
-							s->ustate=U_NORM;
-							break;
-						}
-						if (c&0x80) // start another sequence
-							goto startbyte;
-						s->ustate=U_NORM; // normal byte kills current sequence and is processed
-						yascreen_pushch(s,c);
-						break;
-					case U_L5C1:
-						if ((c&0xc0)==0x80) { // continuation byte
-							//s->utf[1]=c;
-							s->ustate=U_L5C2;
-							break;
-						}
-						if (c&0x80) // start another sequence
-							goto startbyte;
-						s->ustate=U_NORM; // normal byte kills current sequence and is processed
-						yascreen_pushch(s,c);
-						break;
-					case U_L5C2:
-						if ((c&0xc0)==0x80) { // continuation byte
-							//s->utf[2]=c;
-							s->ustate=U_L5C3;
-							break;
-						}
-						if (c&0x80) // start another sequence
-							goto startbyte;
-						s->ustate=U_NORM; // normal byte kills current sequence and is processed
-						yascreen_pushch(s,c);
-						break;
-					case U_L5C3:
-						if ((c&0xc0)==0x80) { // continuation byte
-							//s->utf[3]=c;
-							s->ustate=U_L5C4;
-							break;
-						}
-						if (c&0x80) // start another sequence
-							goto startbyte;
-						s->ustate=U_NORM; // normal byte kills current sequence and is processed
-						yascreen_pushch(s,c);
-						break;
-					case U_L5C4:
-						if ((c&0xc0)==0x80) { // continuation byte
-							//yascreen_pushch(s,s->utf[0]); // sequence is parsed but ignored
-							//yascreen_pushch(s,s->utf[1]);
-							//yascreen_pushch(s,s->utf[2]);
-							//yascreen_pushch(s,s->utf[3]);
-							//yascreen_pushch(s,c);
-							s->ustate=U_NORM;
-							break;
-						}
-						if (c&0x80) // start another sequence
-							goto startbyte;
-						s->ustate=U_NORM; // normal byte kills current sequence and is processed
-						yascreen_pushch(s,c);
-						break;
-					case U_L6C1:
-						if ((c&0xc0)==0x80) { // continuation byte
-							//s->utf[1]=c;
-							s->ustate=U_L6C2;
-							break;
-						}
-						if (c&0x80) // start another sequence
-							goto startbyte;
-						s->ustate=U_NORM; // normal byte kills current sequence and is processed
-						yascreen_pushch(s,c);
-						break;
-					case U_L6C2:
-						if ((c&0xc0)==0x80) { // continuation byte
-							//s->utf[2]=c;
-							s->ustate=U_L6C3;
-							break;
-						}
-						if (c&0x80) // start another sequence
-							goto startbyte;
-						s->ustate=U_NORM; // normal byte kills current sequence and is processed
-						yascreen_pushch(s,c);
-						break;
-					case U_L6C3:
-						if ((c&0xc0)==0x80) { // continuation byte
-							//s->utf[3]=c;
-							s->ustate=U_L6C4;
-							break;
-						}
-						if (c&0x80) // start another sequence
-							goto startbyte;
-						s->ustate=U_NORM; // normal byte kills current sequence and is processed
-						yascreen_pushch(s,c);
-						break;
-					case U_L6C4:
-						if ((c&0xc0)==0x80) { // continuation byte
-							//s->utf[3]=c;
-							s->ustate=U_L6C5;
-							break;
-						}
-						if (c&0x80) // start another sequence
-							goto startbyte;
-						s->ustate=U_NORM; // normal byte kills current sequence and is processed
-						yascreen_pushch(s,c);
-						break;
-					case U_L6C5:
-						if ((c&0xc0)==0x80) { // continuation byte
-							//yascreen_pushch(s,s->utf[0]); // sequence is parsed but ignored
-							//yascreen_pushch(s,s->utf[1]);
-							//yascreen_pushch(s,s->utf[2]);
-							//yascreen_pushch(s,s->utf[3]);
-							//yascreen_pushch(s,s->utf[4]);
-							//yascreen_pushch(s,c);
-							s->ustate=U_NORM;
-							break;
-						}
-						if (c&0x80) // start another sequence
-							goto startbyte;
-						s->ustate=U_NORM; // normal byte kills current sequence and is processed
-						yascreen_pushch(s,c);
-						break;
-				}
-			}
-			break;
-		case ST_ESC:
-			switch (c) {
-				case '`':
-				case '-':
-				case '=':
-				case 0x7f:
-				case '~':
-				case '!':
-				case '@':
-				case '#':
-				case '$':
-				case '%':
-				case '^':
-				case '&':
-				case '*':
-				case '(':
-				case ')':
-				case '_':
-				case '+':
-				case ':':
-				case ';':
-				case '"':
-				case '\'':
-				case '{':
-				case '}':
-				case '|':
-				case '\\':
-				case ',':
-				case '.':
-				case '/':
-				case '<':
-				case '>':
-				case '?':
-				case '0'...'9':
-				case 'a'...'z':
-					yascreen_pushch(s,YAS_K_ALT(c));
-					s->state=ST_NORM;
-					break;
-				case '[':
-					s->ansibuf[s->ansipos++]=c;
-					s->state=ST_ESC_SQ;
-					break;
-				case 'O':
-					s->ansibuf[s->ansipos++]=c;
-					s->state=ST_ESC_O;
-					break;
-				default: // ignore unknown sequence
-					s->state=ST_NORM;
-					break;
-			}
-			break;
-		case ST_ESC_SQ:
-			switch (c) {
-				case 'A': // up
-					yascreen_pushch(s,YAS_K_UP);
-					s->state=ST_NORM;
-					break;
-				case 'B': // down
-					yascreen_pushch(s,YAS_K_DOWN);
-					s->state=ST_NORM;
-					break;
-				case 'C': // right
-					yascreen_pushch(s,YAS_K_RIGHT);
-					s->state=ST_NORM;
-					break;
-				case 'D': // left
-					yascreen_pushch(s,YAS_K_LEFT);
-					s->state=ST_NORM;
-					break;
-				case 'H': // home
-					yascreen_pushch(s,YAS_K_HOME);
-					s->state=ST_NORM;
-					break;
-				case 'F': // end
-					yascreen_pushch(s,YAS_K_END);
-					s->state=ST_NORM;
-					break;
-				case '0'...'9':
-					s->state=ST_ESC_SQ_D;
-					s->ansibuf[s->ansipos++]=c;
-					break;
-				default: // ignore unknown sequence
-					s->state=ST_NORM;
-					break;
-			}
-			break;
-		case ST_ESC_SQ_D:
-			if (s->ansipos>=sizeof s->ansibuf) { // buffer overrun, ignore the sequence
-				s->state=ST_NORM;
-				break;
-			}
-			s->ansibuf[s->ansipos++]=c;
-			if (c>=0x40&&c<=0x7e) { // final char
-				s->state=ST_NORM;
-				s->ansibuf[s->ansipos]=0;
-				switch (c) {
-					case '~': // 0x7e
-						if (s->ansipos==5&&s->ansibuf[2]=='1'&&s->ansibuf[3]=='1') // F1 - \e[11~
-							yascreen_pushch(s,YAS_K_F1);
-						if (s->ansipos==5&&s->ansibuf[2]=='1'&&s->ansibuf[3]=='2') // F2 - \e[12~
-							yascreen_pushch(s,YAS_K_F2);
-						if (s->ansipos==5&&s->ansibuf[2]=='1'&&s->ansibuf[3]=='3') // F3 - \e[13~
-							yascreen_pushch(s,YAS_K_F3);
-						if (s->ansipos==5&&s->ansibuf[2]=='1'&&s->ansibuf[3]=='4') // F4 - \e[14~
-							yascreen_pushch(s,YAS_K_F4);
-						if (s->ansipos==5&&s->ansibuf[2]=='1'&&s->ansibuf[3]=='5') // F5 - \e[15~
-							yascreen_pushch(s,YAS_K_F5);
-						if (s->ansipos==5&&s->ansibuf[2]=='1'&&s->ansibuf[3]=='7') // F6 - \e[17~
-							yascreen_pushch(s,YAS_K_F6);
-						if (s->ansipos==5&&s->ansibuf[2]=='1'&&s->ansibuf[3]=='8') // F7 - \e[18~
-							yascreen_pushch(s,YAS_K_F7);
-						if (s->ansipos==5&&s->ansibuf[2]=='1'&&s->ansibuf[3]=='9') // F8 - \e[19~
-							yascreen_pushch(s,YAS_K_F8);
-						if (s->ansipos==5&&s->ansibuf[2]=='2'&&s->ansibuf[3]=='0') // F9 - \e[20~
-							yascreen_pushch(s,YAS_K_F9);
-						if (s->ansipos==5&&s->ansibuf[2]=='2'&&s->ansibuf[3]=='1') // F10 - \e[21~
-							yascreen_pushch(s,YAS_K_F10);
-						if (s->ansipos==5&&s->ansibuf[2]=='2'&&s->ansibuf[3]=='3') // F11 - \e[23~
-							yascreen_pushch(s,YAS_K_F11);
-						if (s->ansipos==5&&s->ansibuf[2]=='2'&&s->ansibuf[3]=='4') // F12 - \e[24~
-							yascreen_pushch(s,YAS_K_F12);
-						if (s->ansipos==7&&s->ansibuf[2]=='1'&&s->ansibuf[3]=='1'&&s->ansibuf[4]==';'&&s->ansibuf[5]=='2') // shift-F1 \e[11;2~
-							yascreen_pushch(s,YAS_K_S_F1);
-						if (s->ansipos==7&&s->ansibuf[2]=='1'&&s->ansibuf[3]=='2'&&s->ansibuf[4]==';'&&s->ansibuf[5]=='2') // shift-F2 \e[12;2~
-							yascreen_pushch(s,YAS_K_S_F2);
-						if (s->ansipos==7&&s->ansibuf[2]=='1'&&s->ansibuf[3]=='3'&&s->ansibuf[4]==';'&&s->ansibuf[5]=='2') // shift-F3 \e[13;2~
-							yascreen_pushch(s,YAS_K_S_F3);
-						if (s->ansipos==7&&s->ansibuf[2]=='1'&&s->ansibuf[3]=='4'&&s->ansibuf[4]==';'&&s->ansibuf[5]=='2') // shift-F4 \e[14;2~
-							yascreen_pushch(s,YAS_K_S_F4);
-						if (s->ansipos==7&&s->ansibuf[2]=='1'&&s->ansibuf[3]=='5'&&s->ansibuf[4]==';'&&s->ansibuf[5]=='2') // shift-F5 \e[15;2~
-							yascreen_pushch(s,YAS_K_S_F5);
-						if (s->ansipos==7&&s->ansibuf[2]=='1'&&s->ansibuf[3]=='7'&&s->ansibuf[4]==';'&&s->ansibuf[5]=='2') // shift-F6 \e[17;2~
-							yascreen_pushch(s,YAS_K_S_F6);
-						if (s->ansipos==7&&s->ansibuf[2]=='1'&&s->ansibuf[3]=='8'&&s->ansibuf[4]==';'&&s->ansibuf[5]=='2') // shift-F7 \e[18;2~
-							yascreen_pushch(s,YAS_K_S_F7);
-						if (s->ansipos==7&&s->ansibuf[2]=='1'&&s->ansibuf[3]=='9'&&s->ansibuf[4]==';'&&s->ansibuf[5]=='2') // shift-F8 \e[19;2~
-							yascreen_pushch(s,YAS_K_S_F8);
-						if (s->ansipos==7&&s->ansibuf[2]=='2'&&s->ansibuf[3]=='0'&&s->ansibuf[4]==';'&&s->ansibuf[5]=='2') // shift-F9 \e[20;2~
-							yascreen_pushch(s,YAS_K_S_F9);
-						if (s->ansipos==7&&s->ansibuf[2]=='2'&&s->ansibuf[3]=='1'&&s->ansibuf[4]==';'&&s->ansibuf[5]=='2') // shift-F10 \e[21;2~
-							yascreen_pushch(s,YAS_K_S_F10);
-						if (s->ansipos==7&&s->ansibuf[2]=='2'&&s->ansibuf[3]=='3'&&s->ansibuf[4]==';'&&s->ansibuf[5]=='2') // shift-F11 \e[23;2~
-							yascreen_pushch(s,YAS_K_S_F11);
-						if (s->ansipos==7&&s->ansibuf[2]=='2'&&s->ansibuf[3]=='4'&&s->ansibuf[4]==';'&&s->ansibuf[5]=='2') // shift-F12 \e[24;2~
-							yascreen_pushch(s,YAS_K_S_F12);
-						if (s->ansipos==4&&s->ansibuf[2]=='2') // insert - \e[2~
-							yascreen_pushch(s,YAS_K_INS);
-						if (s->ansipos==4&&s->ansibuf[2]=='3') // delete - \e[3~
-							yascreen_pushch(s,YAS_K_DEL);
-						if (s->ansipos==4&&s->ansibuf[2]=='5') // pgup - \e[5~
-							yascreen_pushch(s,YAS_K_PGUP);
-						if (s->ansipos==4&&s->ansibuf[2]=='6') // pgdn - \e[6~
-							yascreen_pushch(s,YAS_K_PGDN);
-						if (s->ansipos==4&&(s->ansibuf[2]=='1'||s->ansibuf[2]=='7')) // home - \e[1~ \e[7~
-							yascreen_pushch(s,YAS_K_HOME);
-						if (s->ansipos==4&&(s->ansibuf[2]=='4'||s->ansibuf[2]=='8')) // end - \e[4~ \e[8~
-							yascreen_pushch(s,YAS_K_END);
-						break;
-					case 'P': // \e[1;2P - shift-F1
-						if (s->ansipos==6&&s->ansibuf[2]=='1'&&s->ansibuf[3]==';'&&s->ansibuf[4]=='2') // shift-F1 - \e[1;2P
-							yascreen_pushch(s,YAS_K_S_F1);
-						break;
-					case 'Q': // \e[1;2Q - shift-F2
-						if (s->ansipos==6&&s->ansibuf[2]=='1'&&s->ansibuf[3]==';'&&s->ansibuf[4]=='2') // shift-F2 - \e[1;2Q
-							yascreen_pushch(s,YAS_K_S_F2);
-						break;
-					case 'R': { // \e[n;mR - cursor position report, used for screen size detection
-						int sx,sy;
-
-						sscanf((char *)s->ansibuf+2,"%d;%dR",&sy,&sx);
-						if (sx>10&&sy>3&&sx<=999&&sy<=999) { // ignore non-sane values
-							s->scrx=sx;
-							s->scry=sy;
-							s->haveansi=1;
-							yascreen_pushch(s,YAS_SCREEN_SIZE);
-						} else if (!strcmp((char *)s->ansibuf+2,"1;2R")) // shift-F3 - \e[1;2R
-							yascreen_pushch(s,YAS_K_S_F3);
-						break;
-					}
-					case 'S': // \e[1;2S - shift-F4
-						if (s->ansipos==6&&s->ansibuf[2]=='1'&&s->ansibuf[3]==';'&&s->ansibuf[4]=='2') // shift-F4 - \e[1;2S
-							yascreen_pushch(s,YAS_K_S_F4);
-						break;
-					case 'A':
-						if (s->ansipos==6&&s->ansibuf[2]=='1'&&s->ansibuf[3]==';'&&s->ansibuf[4]=='5') // ^up - \e[1;5A
-							yascreen_pushch(s,YAS_K_C_UP);
-						if (s->ansipos==6&&s->ansibuf[2]=='1'&&s->ansibuf[3]==';'&&s->ansibuf[4]=='2') // shift-up - \e[1;2A
-							yascreen_pushch(s,YAS_K_S_UP);
-						break;
-					case 'B':
-						if (s->ansipos==6&&s->ansibuf[2]=='1'&&s->ansibuf[3]==';'&&s->ansibuf[4]=='5') // ^down - \e[1;5B
-							yascreen_pushch(s,YAS_K_C_DOWN);
-						if (s->ansipos==6&&s->ansibuf[2]=='1'&&s->ansibuf[3]==';'&&s->ansibuf[4]=='2') // shift-down - \e[1;2B
-							yascreen_pushch(s,YAS_K_S_DOWN);
-						break;
-					case 'C':
-						if (s->ansipos==6&&s->ansibuf[2]=='1'&&s->ansibuf[3]==';'&&s->ansibuf[4]=='5') // ^right - \e[1;5C
-							yascreen_pushch(s,YAS_K_C_RIGHT);
-						if (s->ansipos==6&&s->ansibuf[2]=='1'&&s->ansibuf[3]==';'&&s->ansibuf[4]=='2') // shift-right - \e[1;2C
-							yascreen_pushch(s,YAS_K_S_RIGHT);
-						break;
-					case 'D':
-						if (s->ansipos==6&&s->ansibuf[2]=='1'&&s->ansibuf[3]==';'&&s->ansibuf[4]=='5') // ^left - \e[1;5D
-							yascreen_pushch(s,YAS_K_C_LEFT);
-						if (s->ansipos==6&&s->ansibuf[2]=='1'&&s->ansibuf[3]==';'&&s->ansibuf[4]=='2') // shift-left - \e[1;2D
-							yascreen_pushch(s,YAS_K_S_LEFT);
-						break;
-				}
-			}
-			break;
-		case ST_ESC_O:
-			switch (c) {
-				case 'P': // F1 \eOP
-					yascreen_pushch(s,YAS_K_F1);
-					break;
-				case 'Q': // F2 \eOQ
-					yascreen_pushch(s,YAS_K_F2);
-					break;
-				case 'R': // F3 \eOR
-					yascreen_pushch(s,YAS_K_F3);
-					break;
-				case 'S': // F4 \eOS
-					yascreen_pushch(s,YAS_K_F4);
-					break;
-				case 'w': // F5 \eOw
-					yascreen_pushch(s,YAS_K_F5);
-					break;
-				case 'x': // F6 \eOx
-					yascreen_pushch(s,YAS_K_F6);
-					break;
-				case 'y': // F7 \eOy
-					yascreen_pushch(s,YAS_K_F7);
-					break;
-				case 'm': // F8 \eOm
-					yascreen_pushch(s,YAS_K_F8);
-					break;
-				case 't': // F9 \eOt
-					yascreen_pushch(s,YAS_K_F9);
-					break;
-				case 'u': // F10 \eOu
-					yascreen_pushch(s,YAS_K_F10);
-					break;
-				case 'v': // F11 \eOv
-					yascreen_pushch(s,YAS_K_F11);
-					break;
-				case 'l': // F12 \eOl
-					yascreen_pushch(s,YAS_K_F12);
-					break;
-				case 'H': // home \eOH
-					yascreen_pushch(s,YAS_K_HOME);
-					break;
-				case 'F': // end \eOF
-					yascreen_pushch(s,YAS_K_END);
-					break;
-				case 'a': // ^up \eOa
-					yascreen_pushch(s,YAS_K_C_UP);
-					break;
-				case 'b': // ^down \eOb
-					yascreen_pushch(s,YAS_K_C_DOWN);
-					break;
-				case 'c': // ^right \eOc
-					yascreen_pushch(s,YAS_K_C_RIGHT);
-					break;
-				case 'd': // ^left \eOd
-					yascreen_pushch(s,YAS_K_C_LEFT);
-					break;
-			}
-			s->state=ST_NORM;
-			break;
-	}
-} // }}}
-
-inline int yascreen_getch_to(yascreen *s,int timeout) { // {{{
+static inline int yascreen_getch_to_gen(yascreen *s,int timeout,int key_none) { // {{{
 	int64_t toms=timeout*1000,tto;
 	struct timeval to,*pto=&to;
 	fd_set r;
 
 	if (!s)
-		return YAS_K_NONE;
+		return key_none;
 
 	memset(&r,0,sizeof r); // make clang static analyzer happier (llvm bug #8920)
 
@@ -2078,9 +1546,9 @@ inline int yascreen_getch_to(yascreen *s,int timeout) { // {{{
 			return key;
 		}
 		if (s->outcb)
-			return YAS_K_NONE;
+			return key_none;
 		if (STDOUT_FILENO<0)
-			return YAS_K_NONE;
+			return key_none;
 		FD_ZERO(&r);
 		FD_SET(STDOUT_FILENO,&r);
 		if (-1!=select(STDOUT_FILENO+1,&r,NULL,NULL,pto)) {
@@ -2093,9 +1561,9 @@ inline int yascreen_getch_to(yascreen *s,int timeout) { // {{{
 		}
 		if (pto&&(timeout>0||s->escto)&&to.tv_sec==0&&to.tv_usec==0) { // return because of timeout
 			if (timeout<0) // nowait is set
-				return YAS_K_NONE;
+				return key_none;
 			if (!toms&&timeout>0) // timeout is finished
-				return YAS_K_NONE;
+				return key_none;
 			if (!toms)
 				tto=s->escto;
 			else
@@ -2106,6 +1574,16 @@ inline int yascreen_getch_to(yascreen *s,int timeout) { // {{{
 			to.tv_usec=(tto%1000)*1000;
 		}
 	}
+} // }}}
+
+//  inline void yascreen_feed(yascreen *s,unsigned char c) {{{
+#if YASCREEN_VERSIONED
+__attribute__((symver("yascreen_getch_to@@YASCREEN_1.93")))
+inline int yascreen_getch_to_193(yascreen *s,int timeout) {
+#else
+inline int yascreen_getch_to(yascreen *s,int timeout) {
+#endif
+	return yascreen_getch_to_gen(s,timeout,YAS_K_NONE);
 } // }}}
 
 inline void yascreen_ungetch(yascreen *s,int key) { // {{{
@@ -2155,7 +1633,13 @@ inline void yascreen_esc_to(yascreen *s,int timeout) { // {{{
 	s->escto=(timeout>=0)?timeout:YAS_DEFAULT_ESCTO;
 } // }}}
 
-inline int yascreen_peekch(yascreen *s) { // {{{
+//  inline void yascreen_feed(yascreen *s,unsigned char c) {{{
+#if YASCREEN_VERSIONED
+__attribute__((symver("yascreen_peekch@@YASCREEN_1.93")))
+inline int yascreen_peekch_193(yascreen *s) {
+#else
+inline int yascreen_peekch(yascreen *s) {
+#endif
 	int ch=yascreen_getch_nowait(s);
 
 	if (ch!=YAS_K_NONE)
@@ -2281,3 +1765,155 @@ inline wchar_t yascreen_peekwch(yascreen *s) { // {{{
 	return ch;
 } // }}}
 
+#define YASCREEN_FEED_HEAD
+#include "yascreen_feed.c"
+#undef YASCREEN_FEED_HEAD
+
+#if YASCREEN_VERSIONED
+
+// redefine YAS_K_* {{{
+
+#undef YAS_K_ALT
+#define YAS_K_ALT(code) (((code)&0xff)|0x200)
+
+#define YAS_K_NONE -1 // no key available
+// extended keys send as escape sequences
+// function keys with ALT/CTRL/SHIFT
+#define YAS_K_F1 0x100
+#define YAS_K_F2 0x101
+#define YAS_K_F3 0x102
+#define YAS_K_F4 0x103
+#define YAS_K_F5 0x104
+#define YAS_K_F6 0x105
+#define YAS_K_F7 0x106
+#define YAS_K_F8 0x107
+#define YAS_K_F9 0x108
+#define YAS_K_F10 0x109
+#define YAS_K_F11 0x10a
+#define YAS_K_F12 0x10b
+#define YAS_K_S_F1 0x10c
+#define YAS_K_S_F2 0x10d
+#define YAS_K_S_F3 0x10e
+#define YAS_K_S_F4 0x10f
+#define YAS_K_S_F5 0x110
+#define YAS_K_S_F6 0x111
+#define YAS_K_S_F7 0x112
+#define YAS_K_S_F8 0x113
+#define YAS_K_S_F9 0x114
+#define YAS_K_S_F10 0x115
+#define YAS_K_S_F11 0x116
+#define YAS_K_S_F12 0x117
+#define YAS_K_C_F1 0x118
+#define YAS_K_C_F2 0x119
+#define YAS_K_C_F3 0x11a
+#define YAS_K_C_F4 0x11b
+#define YAS_K_C_F5 0x11c
+#define YAS_K_C_F6 0x11d
+#define YAS_K_C_F7 0x11e
+#define YAS_K_C_F8 0x11f
+#define YAS_K_C_F9 0x120
+#define YAS_K_C_F10 0x121
+#define YAS_K_C_F11 0x122
+#define YAS_K_C_F12 0x123
+#define YAS_K_A_F1 0x124
+#define YAS_K_A_F2 0x125
+#define YAS_K_A_F3 0x126
+#define YAS_K_A_F4 0x127
+#define YAS_K_A_F5 0x128
+#define YAS_K_A_F6 0x129
+#define YAS_K_A_F7 0x12a
+#define YAS_K_A_F8 0x12b
+#define YAS_K_A_F9 0x12c
+#define YAS_K_A_F10 0x12d
+#define YAS_K_A_F11 0x12e
+#define YAS_K_A_F12 0x12f
+#define YAS_K_LEFT 0x130
+#define YAS_K_UP 0x131
+#define YAS_K_DOWN 0x132
+#define YAS_K_RIGHT 0x133
+#define YAS_K_HOME 0x134
+#define YAS_K_END 0x135
+#define YAS_K_PGUP 0x136
+#define YAS_K_PGDN 0x137
+#define YAS_K_INS 0x138
+#define YAS_K_DEL 0x139
+#define YAS_K_C_LEFT 0x13a
+#define YAS_K_C_UP 0x13b
+#define YAS_K_C_DOWN 0x13c
+#define YAS_K_C_RIGHT 0x13d
+// ALT+letter
+#define YAS_K_A_BT YAS_K_ALT('`')
+#define YAS_K_A_1 YAS_K_ALT('1')
+#define YAS_K_A_2 YAS_K_ALT('2')
+#define YAS_K_A_3 YAS_K_ALT('3')
+#define YAS_K_A_4 YAS_K_ALT('4')
+#define YAS_K_A_5 YAS_K_ALT('5')
+#define YAS_K_A_6 YAS_K_ALT('6')
+#define YAS_K_A_7 YAS_K_ALT('7')
+#define YAS_K_A_8 YAS_K_ALT('8')
+#define YAS_K_A_9 YAS_K_ALT('9')
+#define YAS_K_A_0 YAS_K_ALT('0')
+#define YAS_K_A_MINUS YAS_K_ALT('-')
+#define YAS_K_A_EQ YAS_K_ALT(' ')
+#define YAS_K_A_BSP YAS_K_ALT(0x7f)
+#define YAS_K_A_TLD YAS_K_ALT('~')
+#define YAS_K_A_EXCL YAS_K_ALT('!')
+#define YAS_K_A_AT YAS_K_ALT('@')
+#define YAS_K_A_HASH YAS_K_ALT('#')
+#define YAS_K_A_POUND YAS_K_ALT('$')
+#define YAS_K_A_PERC YAS_K_ALT('%')
+#define YAS_K_A_CARRET YAS_K_ALT('^')
+#define YAS_K_A_AND YAS_K_ALT('&')
+#define YAS_K_A_STAR YAS_K_ALT('*')
+#define YAS_K_A_OBRA YAS_K_ALT('(')
+#define YAS_K_A_CBRA YAS_K_ALT(')')
+#define YAS_K_A_UND YAS_K_ALT('_')
+#define YAS_K_A_PLUS YAS_K_ALT('+')
+#define YAS_K_A_a YAS_K_ALT('a')
+#define YAS_K_A_b YAS_K_ALT('b')
+#define YAS_K_A_c YAS_K_ALT('c')
+#define YAS_K_A_d YAS_K_ALT('d')
+#define YAS_K_A_e YAS_K_ALT('e')
+#define YAS_K_A_f YAS_K_ALT('f')
+#define YAS_K_A_g YAS_K_ALT('g')
+#define YAS_K_A_h YAS_K_ALT('h')
+#define YAS_K_A_i YAS_K_ALT('i')
+#define YAS_K_A_j YAS_K_ALT('j')
+#define YAS_K_A_k YAS_K_ALT('k')
+#define YAS_K_A_l YAS_K_ALT('l')
+#define YAS_K_A_m YAS_K_ALT('m')
+#define YAS_K_A_n YAS_K_ALT('n')
+#define YAS_K_A_o YAS_K_ALT('o')
+#define YAS_K_A_p YAS_K_ALT('p')
+#define YAS_K_A_q YAS_K_ALT('q')
+#define YAS_K_A_r YAS_K_ALT('r')
+#define YAS_K_A_s YAS_K_ALT('s')
+#define YAS_K_A_t YAS_K_ALT('t')
+#define YAS_K_A_u YAS_K_ALT('u')
+#define YAS_K_A_v YAS_K_ALT('v')
+#define YAS_K_A_w YAS_K_ALT('w')
+#define YAS_K_A_x YAS_K_ALT('x')
+#define YAS_K_A_y YAS_K_ALT('y')
+#define YAS_K_A_z YAS_K_ALT('z')
+#define YAS_SCREEN_SIZE 0x800
+#define YAS_TELNET_SIZE 0x801
+
+// }}}
+
+__attribute__((symver("yascreen_getch_to@YASCREEN_1.79"))) // {{{
+inline int yascreen_getch_to_179(yascreen *s,int timeout) {
+	return yascreen_getch_to_gen(s,timeout,YAS_K_NONE);
+} // }}}
+
+__attribute__((symver("yascreen_peekch@YASCREEN_1.79"))) // {{{
+inline int yascreen_peekch_179(yascreen *s) {
+	int ch=yascreen_getch_to_179(s,-1);
+
+	if (ch!=YAS_K_NONE)
+		yascreen_ungetch(s,ch);
+	return ch;
+} // }}}
+
+#include "yascreen_feed.c"
+
+#endif
