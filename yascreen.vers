@@ -1,3 +1,68 @@
-YASCREEN_1.92 {
-	global: *;
+YASCREEN_1.79 {
+	global:
+		yascreen_clearln;
+		yascreen_print;
+		yascreen_clear;
+		yascreen_puts;
+		yascreen_set_hint_i;
+		yascreen_altbuf;
+		yascreen_ckto;
+		yascreen_getch_to;
+		yascreen_set_unicode;
+		yascreen_putsxyu;
+		yascreen_term_pop;
+		yascreen_getsize;
+		yascreen_esc_to;
+		yascreen_set_hint_p;
+		yascreen_free;
+		yascreen_printxy;
+		yascreen_get_hint_i;
+		yascreen_cursor_xy;
+		yascreen_write;
+		yascreen_init;
+		yascreen_ver;
+		yascreen_resize;
+		yascreen_peekch;
+		yascreen_redraw;
+		yascreen_term_save;
+		yascreen_update_attr;
+		yascreen_dump;
+		yascreen_get_hint_p;
+		yascreen_setout;
+		yascreen_pushch;
+		yascreen_update;
+		yascreen_clearln_s;
+		yascreen_init_telnet;
+		yascreen_set_telnet;
+		yascreen_printxyu;
+		yascreen_feed;
+		yascreen_reqsize;
+		yascreen_term_push;
+		yascreen_term_restore;
+		yascreen_term_set;
+		yascreen_putsxy;
+		yascreen_cursor;
+		yascreen_x;
+		yascreen_clear_mem;
+		yascreen_sx;
+		yascreen_sy;
+		yascreen_y;
+		yascreen_ungetch;
+	local: *;
 };
+YASCREEN_1.83 {
+	global:
+		# newly added
+		yascreen_line_flush;
+} YASCREEN_1.79;
+YASCREEN_1.93 {
+	global:
+		# different constants, compatible with unicode
+		yascreen_getch_to;
+		yascreen_peekch;
+		yascreen_feed;
+		# newly added
+		yascreen_getwch_to;
+		yascreen_ungetwch;
+		yascreen_peekwch;
+} YASCREEN_1.83;
