@@ -8,7 +8,6 @@ YASCREEN_1.79 {
 		yascreen_altbuf;
 		yascreen_ckto;
 		yascreen_getch_to;
-		yascreen_set_unicode;
 		yascreen_putsxyu;
 		yascreen_term_pop;
 		yascreen_getsize;
@@ -62,6 +61,7 @@ YASCREEN_1.93 {
 		yascreen_peekch;
 		yascreen_feed;
 		# newly added
+		yascreen_set_unicode;
 		yascreen_getwch_to;
 		yascreen_ungetwch;
 		yascreen_peekwch;
