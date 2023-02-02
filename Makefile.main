@@ -65,9 +65,6 @@ SONAME:=
 endif
 
 ifeq ($(shell uname -s),OpenBSD)
-ifeq ($(CC),cc)
-CC:=egcc
-endif
 AR=ar
 RANLIB=ranlib
 CCOPT:=-Wall -Wextra -I. --std=gnu89
