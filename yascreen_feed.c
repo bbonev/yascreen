@@ -1,12 +1,20 @@
-// $Id: yascreen_feed.c,v 1.2 2023/02/01 18:41:36 bbonev Exp $
+// $Id: yascreen_feed.c,v 1.3 2023/02/02 00:06:00 bbonev Exp $
 
 //  inline void yascreen_feed(yascreen *s,unsigned char c) {{{
 #if YASCREEN_VERSIONED
 #ifdef YASCREEN_FEED_HEAD
+#if defined __GNUC__ && __GNUC__ >= 10 && !defined(__clang__)
 __attribute__((symver("yascreen_feed@@YASCREEN_1.93")))
+#else
+asm(".symver yascreen_feed_193,yascreen_feed@@YASCREEN_1.93");
+#endif
 inline void yascreen_feed_193(yascreen *s,unsigned char c) {
 #else
+#if defined __GNUC__ && __GNUC__ >= 10 && !defined(__clang__)
 __attribute__((symver("yascreen_feed@YASCREEN_1.79")))
+#else
+asm(".symver yascreen_feed_179,yascreen_feed@YASCREEN_1.79");
+#endif
 inline void yascreen_feed_179(yascreen *s,unsigned char c) {
 #endif
 #else

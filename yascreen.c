@@ -1,4 +1,4 @@
-// $Id: yascreen.c,v 1.94 2023/02/01 18:39:33 bbonev Exp $
+// $Id: yascreen.c,v 1.95 2023/02/02 00:06:00 bbonev Exp $
 //
 // Copyright © 2015-2023 Boian Bonev (bbonev@ipacct.com) {{{
 //
@@ -291,7 +291,7 @@ inline void *yascreen_get_hint_p(yascreen *s) { // {{{
 	return s->phint;
 } // }}}
 
-static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 1.94 $\n\n"; // {{{
+static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 1.95 $\n\n"; // {{{
 // }}}
 
 inline const char *yascreen_ver(void) { // {{{
@@ -1578,7 +1578,11 @@ static inline int yascreen_getch_to_gen(yascreen *s,int timeout,int key_none) { 
 
 //  inline void yascreen_feed(yascreen *s,unsigned char c) {{{
 #if YASCREEN_VERSIONED
+#if defined __GNUC__ && __GNUC__ >= 10 && !defined(__clang__)
 __attribute__((symver("yascreen_getch_to@@YASCREEN_1.93")))
+#else
+asm(".symver yascreen_getch_to_193,yascreen_getch_to@@YASCREEN_1.93");
+#endif
 inline int yascreen_getch_to_193(yascreen *s,int timeout) {
 #else
 inline int yascreen_getch_to(yascreen *s,int timeout) {
@@ -1635,7 +1639,11 @@ inline void yascreen_esc_to(yascreen *s,int timeout) { // {{{
 
 //  inline void yascreen_feed(yascreen *s,unsigned char c) {{{
 #if YASCREEN_VERSIONED
+#if defined __GNUC__ && __GNUC__ >= 10 && !defined(__clang__)
 __attribute__((symver("yascreen_peekch@@YASCREEN_1.93")))
+#else
+asm(".symver yascreen_peekch_193,yascreen_peekch@@YASCREEN_1.93");
+#endif
 inline int yascreen_peekch_193(yascreen *s) {
 #else
 inline int yascreen_peekch(yascreen *s) {
@@ -1900,12 +1908,22 @@ inline wchar_t yascreen_peekwch(yascreen *s) { // {{{
 
 // }}}
 
-__attribute__((symver("yascreen_getch_to@YASCREEN_1.79"))) // {{{
+// {{{
+#if defined __GNUC__ && __GNUC__ >= 10 && !defined(__clang__)
+__attribute__((symver("yascreen_getch_to@YASCREEN_1.79")))
+#else
+asm(".symver yascreen_getch_to_179,yascreen_getch_to@YASCREEN_1.79");
+#endif
 inline int yascreen_getch_to_179(yascreen *s,int timeout) {
 	return yascreen_getch_to_gen(s,timeout,YAS_K_NONE);
 } // }}}
 
-__attribute__((symver("yascreen_peekch@YASCREEN_1.79"))) // {{{
+// {{{
+#if defined __GNUC__ && __GNUC__ >= 10 && !defined(__clang__)
+__attribute__((symver("yascreen_peekch@YASCREEN_1.79")))
+#else
+asm(".symver yascreen_peekch_179,yascreen_peekch@YASCREEN_1.79");
+#endif
 inline int yascreen_peekch_179(yascreen *s) {
 	int ch=yascreen_getch_to_179(s,-1);
 
