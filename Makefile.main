@@ -38,6 +38,27 @@ VER=$(shell grep Revision yascreen.c|head -n1|sed -e 's/.\+Revision: \([0-9.]\+\
 SOVERM:=0
 SOVERF:=0.0.0
 
+SONAME:=-Wl,-soname,libyascreen.so.$(SOVERM)
+
+ifeq ($(shell uname -s),Darwin)
+AR=ar
+RANLIB=ranlib
+LDOPT:=
+SONAME:=
+endif
+
+ifeq ($(shell uname -s),OpenBSD) # tested on 7.2
+AR=ar
+RANLIB=ranlib
+endif
+
+ifeq ($(shell uname -s),NetBSD) # tested on 9.3
+AR=ar
+RANLIB=ranlib
+NO_VERSIONED:=1
+NO_FLTO:=1
+endif
+
 # change options based on flto configuration
 
 ifndef NO_FLTO
@@ -53,22 +74,6 @@ CCOPT+=-DYASCREEN_VERSIONED=1
 LDOPT:=-Wl,--version-script,yascreen.vers
 else
 CCOPT+=-DYASCREEN_VERSIONED=0
-endif
-
-SONAME:=-Wl,-soname,libyascreen.so.$(SOVERM)
-
-ifeq ($(shell uname -s),Darwin)
-AR=ar
-RANLIB=ranlib
-LDOPT:=
-SONAME:=
-endif
-
-ifeq ($(shell uname -s),OpenBSD)
-AR=ar
-RANLIB=ranlib
-CCOPT:=-Wall -Wextra -I. --std=gnu89
-LDOPT:=
 endif
 
 # allow to pass additional compiler flags
