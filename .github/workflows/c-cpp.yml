@@ -57,5 +57,5 @@ jobs:
       with:
         usesh: true
         prepare:  |
-          pkg install -y meson ninja gettext pkgconf
-        run: make
+          pkg install -y gmake
+        run: gmake
