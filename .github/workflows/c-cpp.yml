@@ -27,15 +27,15 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
-    - name: Show info
-      run: |
-        export -p
-        echo '${{ toJSON(matrix) }}'
-
     - if: ${{ matrix.cc == 'clang' }}
       run: |
         echo "CC=clang" >> $GITHUB_ENV
         echo "CXX=clang++" >> $GITHUB_ENV
+
+    - name: Show info
+      run: |
+        export -p
+        echo '${{ toJSON(matrix) }}'
 
     # If the build tools ever seem to be out of date, this can be uncommented
     #
@@ -58,4 +58,6 @@ jobs:
         usesh: true
         prepare:  |
           pkg install -y gmake
-        run: gmake
+        run: |
+          cc --version
+          gmake
