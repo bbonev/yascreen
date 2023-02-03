@@ -55,6 +55,7 @@ endif
 ifeq ($(shell uname -s),OpenBSD) # tested on 7.2
 AR=ar
 RANLIB=ranlib
+NO_VERSIONED:=1
 endif
 
 ifeq ($(shell uname -s),NetBSD) # tested on 9.3
