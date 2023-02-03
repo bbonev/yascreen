@@ -1,4 +1,4 @@
-// $Id: yascreen.c,v 1.95 2023/02/02 00:06:00 bbonev Exp $
+// $Id: yascreen.c,v 1.96 2023/02/03 23:20:18 bbonev Exp $
 //
 // Copyright © 2015-2023 Boian Bonev (bbonev@ipacct.com) {{{
 //
@@ -313,7 +313,7 @@ inline void *yascreen_get_hint_p(yascreen *s) { // {{{
 	return s->phint;
 } // }}}
 
-static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 1.95 $\n\n"; // {{{
+static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 1.96 $\n\n"; // {{{
 // }}}
 
 inline const char *yascreen_ver(void) { // {{{

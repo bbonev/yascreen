@@ -1,4 +1,4 @@
-// $Id: yascreen_feed.c,v 1.3 2023/02/02 00:06:00 bbonev Exp $
+// $Id: yascreen_feed.c,v 1.4 2023/02/03 23:20:18 bbonev Exp $
 
 symver_V(V(yascreen_feed,V193),yascreen_feed,YASCREEN_193) // {{{
 inline void V(yascreen_feed,V193)(yascreen *s,unsigned char c) {
