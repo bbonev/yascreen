@@ -1511,6 +1511,11 @@ static inline int yascreen_feed_telnet(yascreen *s,unsigned char c) { // {{{
 	return TELNET_NOOP;
 } // }}}
 
+#if YASCREEN_VERSIONED
+inline void yascreen_feed_193(yascreen *s,unsigned char c);
+inline void yascreen_feed_179(yascreen *s,unsigned char c);
+#endif
+
 static inline int yascreen_getch_to_gen(yascreen *s,int timeout,int key_none) { // {{{
 	int64_t toms=timeout*1000,tto;
 	struct timeval to,*pto=&to;
@@ -1555,7 +1560,14 @@ static inline int yascreen_getch_to_gen(yascreen *s,int timeout,int key_none) { 
 			unsigned char c; // important to be unsigned, so codes>127 do not expand as negative int values
 
 			if (FD_ISSET(STDOUT_FILENO,&r)&&sizeof c==read(STDOUT_FILENO,&c,sizeof c)) {
+				#if YASCREEN_VERSIONED
+				if (key_none==-1)
+					yascreen_feed_179(s,c);
+				else
+					yascreen_feed_193(s,c);
+				#else
 				yascreen_feed(s,c);
+				#endif
 				continue; // check if feed has yielded a key
 			}
 		}
