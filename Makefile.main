@@ -47,6 +47,11 @@ LDOPT:=
 SONAME:=
 endif
 
+ifeq ($(shell uname -s),FreeBSD) # tested on 14.0
+AR=ar
+RANLIB=ranlib
+endif
+
 ifeq ($(shell uname -s),OpenBSD) # tested on 7.2
 AR=ar
 RANLIB=ranlib
