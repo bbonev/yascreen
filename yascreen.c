@@ -162,6 +162,28 @@ struct _yascreen {
 	uint8_t outb[256]; // buffered output
 	uint16_t outp; // position in outb
 };
+
+// helpers for versioned symbols
+#if YASCREEN_VERSIONED // implementation always follows the attribute
+#if defined __GNUC__ && __GNUC__ >= 10 && !defined(__clang__)
+#define symver_o(impl,sym,ver) __attribute__((symver(#sym"@"#ver)))
+#define symver_d(impl,sym,ver) __attribute__((symver(#sym"@@"#ver)))
+#else
+#define symver_o(impl,sym,ver) asm(".symver "#impl","#sym"@"#ver);
+#define symver_d(impl,sym,ver) asm(".symver "#impl","#sym"@@"#ver);
+#endif
+#define VV(foo,ver) foo##ver
+#define V(foo,ver) VV(foo,ver)
+#define V193 _193
+#else
+#define symver_o(impl,sym,ver)
+#define symver_d(impl,sym,ver)
+#define V(foo,ver) foo
+#define V193
+#endif
+#define symver_V(impl,sym,ver) symver_d(impl,sym,ver)
+#define YASCREEN_193 YASCREEN_1.93
+
 // }}}
 
 static inline int64_t mytime() { // {{{
@@ -1561,10 +1583,10 @@ static inline int yascreen_getch_to_gen(yascreen *s,int timeout,int key_none) { 
 
 			if (FD_ISSET(STDOUT_FILENO,&r)&&sizeof c==read(STDOUT_FILENO,&c,sizeof c)) {
 				#if YASCREEN_VERSIONED
-				if (key_none==-1)
-					yascreen_feed_179(s,c);
-				else
+				if (key_none==YAS_K_NONE) // default behaviour, new symbols
 					yascreen_feed_193(s,c);
+				else
+					yascreen_feed_179(s,c);
 				#else
 				yascreen_feed(s,c);
 				#endif
@@ -1588,17 +1610,8 @@ static inline int yascreen_getch_to_gen(yascreen *s,int timeout,int key_none) { 
 	}
 } // }}}
 
-//  inline void yascreen_feed(yascreen *s,unsigned char c) {{{
-#if YASCREEN_VERSIONED
-#if defined __GNUC__ && __GNUC__ >= 10 && !defined(__clang__)
-__attribute__((symver("yascreen_getch_to@@YASCREEN_1.93")))
-#else
-asm(".symver yascreen_getch_to_193,yascreen_getch_to@@YASCREEN_1.93");
-#endif
-inline int yascreen_getch_to_193(yascreen *s,int timeout) {
-#else
-inline int yascreen_getch_to(yascreen *s,int timeout) {
-#endif
+symver_d(yascreen_getch_to_193,yascreen_getch_to,YASCREEN_1.93) // {{{
+inline int V(yascreen_getch_to,V193)(yascreen *s,int timeout) {
 	return yascreen_getch_to_gen(s,timeout,YAS_K_NONE);
 } // }}}
 
@@ -1649,17 +1662,8 @@ inline void yascreen_esc_to(yascreen *s,int timeout) { // {{{
 	s->escto=(timeout>=0)?timeout:YAS_DEFAULT_ESCTO;
 } // }}}
 
-//  inline void yascreen_feed(yascreen *s,unsigned char c) {{{
-#if YASCREEN_VERSIONED
-#if defined __GNUC__ && __GNUC__ >= 10 && !defined(__clang__)
-__attribute__((symver("yascreen_peekch@@YASCREEN_1.93")))
-#else
-asm(".symver yascreen_peekch_193,yascreen_peekch@@YASCREEN_1.93");
-#endif
-inline int yascreen_peekch_193(yascreen *s) {
-#else
-inline int yascreen_peekch(yascreen *s) {
-#endif
+symver_d(yascreen_peekch_193,yascreen_peekch,YASCREEN_1.93) // {{{
+inline int V(yascreen_peekch,V193)(yascreen *s) {
 	int ch=yascreen_getch_nowait(s);
 
 	if (ch!=YAS_K_NONE)
@@ -1785,13 +1789,10 @@ inline wchar_t yascreen_peekwch(yascreen *s) { // {{{
 	return ch;
 } // }}}
 
-#define YASCREEN_FEED_HEAD
+// get yascreen_feed with the new symbol or unversioned
 #include "yascreen_feed.c"
-#undef YASCREEN_FEED_HEAD
 
-#if YASCREEN_VERSIONED
-
-// redefine YAS_K_* {{{
+#if YASCREEN_VERSIONED // redefine YAS_K_* {{{
 
 #undef YAS_K_ALT
 #define YAS_K_ALT(code) (((code)&0xff)|0x200)
@@ -1921,21 +1922,13 @@ inline wchar_t yascreen_peekwch(yascreen *s) { // {{{
 // }}}
 
 // {{{
-#if defined __GNUC__ && __GNUC__ >= 10 && !defined(__clang__)
-__attribute__((symver("yascreen_getch_to@YASCREEN_1.79")))
-#else
-asm(".symver yascreen_getch_to_179,yascreen_getch_to@YASCREEN_1.79");
-#endif
+
+symver_o(yascreen_getch_to_179,yascreen_getch_to,YASCREEN_1.79) // {{{
 inline int yascreen_getch_to_179(yascreen *s,int timeout) {
 	return yascreen_getch_to_gen(s,timeout,YAS_K_NONE);
 } // }}}
 
-// {{{
-#if defined __GNUC__ && __GNUC__ >= 10 && !defined(__clang__)
-__attribute__((symver("yascreen_peekch@YASCREEN_1.79")))
-#else
-asm(".symver yascreen_peekch_179,yascreen_peekch@YASCREEN_1.79");
-#endif
+symver_o(yascreen_peekch_179,yascreen_peekch,YASCREEN_1.79) // {{{
 inline int yascreen_peekch_179(yascreen *s) {
 	int ch=yascreen_getch_to_179(s,-1);
 
@@ -1944,6 +1937,14 @@ inline int yascreen_peekch_179(yascreen *s) {
 	return ch;
 } // }}}
 
+// now get yascreen_feed old version
+
+#undef symver_V
+#define symver_V(impl,sym,ver) symver_o(impl,sym,ver)
+#undef V193
+#define V193 _179
+#undef YASCREEN_193
+#define YASCREEN_193 YASCREEN_1.79
 #include "yascreen_feed.c"
 
 #endif
