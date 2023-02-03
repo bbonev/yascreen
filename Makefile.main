@@ -88,7 +88,7 @@ MYLDFLAGS=$(LDFLAGS) $(LDOPT)
 
 all: libyascreen.a libyascreen.so yascreen.pc
 
-yascreen.o: yascreen.c yascreen.h
+yascreen.o: yascreen.c yascreen.h yascreen_feed.c
 	$(CC) $(MYCFLAGS) -o $@ -c $<
 
 yastest.o: yastest.c yascreen.h
