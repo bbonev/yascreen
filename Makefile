@@ -12,7 +12,8 @@
 #
 # }}}
 
-$(.TARGETS):
-	@if [ ! -x "`which gmake 2>/dev/null`" ]; then echo gmake is required; false; fi
-	@gmake -f GNUmakefile $(.TARGETS)
+all .DEFAULT:
+	@if [ ! -x "$$(command -v gmake 2>/dev/null)" ]; then echo gmake is required; false; fi
+	@gmake --no-print-directory -f GNUmakefile $@
 
+.PHONY: all
