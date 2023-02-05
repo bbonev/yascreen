@@ -66,12 +66,17 @@ NO_VERSIONED:=1
 NO_FLTO:=1
 endif
 
-CHECK_CC_FLAGS := -Wall -Wextra -I. --std=gnu89 -fPIC -flto=auto
-define check_cc_flag
-  $(shell echo 'int main() { return 0; }' | $(CC) $(1) -xc - 2>/dev/null && echo $(1))
-endef
+ifndef NO_FLTO
+CHECK_CC_FLAGS:=-Wall -Wextra -I. --std=gnu89 -fPIC -flto=auto
+else
+CHECK_CC_FLAGS:=-Wall -Wextra -I. --std=gnu89 -fPIC
+endif
 
-HAVE_FLAGS += $(foreach flag,$(CHECK_CC_FLAGS),$(call check_cc_flag,$(flag)))
+# remove unsupported flags from CCOPT
+define check_cc_flag
+$(shell echo 'int main(){return 0;}'|$(CC) $(1) -xc - -o /dev/null 2>/dev/null && echo $(1))
+endef
+HAVE_FLAGS+=$(foreach flag,$(CHECK_CC_FLAGS),$(call check_cc_flag,$(flag)))
 CCOPT:=$(HAVE_FLAGS)
 
 # build versioned library by default
