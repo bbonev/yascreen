@@ -152,6 +152,7 @@ mkotar:
 	tar \
 		--xform 's,^[.],yascreen-$(VER),' \
 		--exclude ./.git \
+		--exclude ./.github \
 		--exclude ./.gitignore \
 		--exclude ./.cvsignore \
 		--exclude ./CVS \
