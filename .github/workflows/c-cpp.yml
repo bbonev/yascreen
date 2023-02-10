@@ -1,0 +1,63 @@
+name: C/C++ CI
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  push:
+    branches: master
+  pull_request:
+    branches: master
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os:  [ubuntu-20.04, ubuntu-22.04]
+        cc: [gcc, clang]
+        include:
+          - os: macos-latest
+          - os: ubuntu-20.04
+            cc: slackware
+            container: 'andy5995/slackware-build-essential:15.0'
+
+    runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container }}
+    steps:
+    - uses: actions/checkout@v3
+
+    - if: ${{ matrix.cc == 'clang' }}
+      run: |
+        echo "CC=clang" >> $GITHUB_ENV
+        echo "CXX=clang++" >> $GITHUB_ENV
+
+    - name: Show info
+      run: |
+        export -p
+        echo '${{ toJSON(matrix) }}'
+
+    # If the build tools ever seem to be out of date, this can be uncommented
+    #
+    #- if: ${{ contains(matrix.os, 'ubuntu') && matrix.container == null }}
+      #run: |
+        #sudo apt-get update -qq
+        #sudo apt-get upgrade -y -qq
+
+    - name: Make
+      run: make
+
+  freebsd:
+    runs-on: macos-12
+    name: FreeBSD Test
+    steps:
+    - uses: actions/checkout@v3
+    - name: Test
+      uses: vmactions/freebsd-vm@v0
+      with:
+        usesh: true
+        prepare:  |
+          pkg install -y gmake
+        run: |
+          cc --version
+          gmake

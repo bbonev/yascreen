@@ -1,5 +1,5 @@
 Name:           yascreen
-Version:        1.92
+Version:        1.96
 Release:        1%{?dist}
 Summary:        Yet Another Screen Library (lib(n)curses alternative)
 
@@ -74,6 +74,9 @@ rm -f $RPM_BUILD_ROOT%{_libdir}/libyascreen.a
 %{_includedir}/yascreen.h
 
 %changelog
+* Sun Feb 5 2023 Boian Bonev <bbonev@ipacct.com> - 1.96-1
+- Update to latest ver 1.96
+
 * Mon Jan 2 2023 Boian Bonev <bbonev@ipacct.com> - 1.92-1
 - Update to latest ver 1.92
 

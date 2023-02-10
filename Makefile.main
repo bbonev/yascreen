@@ -35,35 +35,57 @@ VER=$(shell grep Revision yascreen.c|head -n1|sed -e 's/.\+Revision: \([0-9.]\+\
 
 # shared library version
 
-SOVERM:=1
-SOVERF:=1.0.0
+SOVERM:=0
+SOVERF:=0.0.0
 
-# change options based on flto configuration
-
-ifndef NO_FLTO
-CCOPT:=-Wall -Wextra -I. --std=gnu89 -fPIC -flto
-else
-CCOPT:=-Wall -Wextra -I. --std=gnu89 -fPIC
-endif
-
-LDOPT:=-Wl,--version-script,yascreen.vers
 SONAME:=-Wl,-soname,libyascreen.so.$(SOVERM)
 
-ifeq ($(shell uname -s),Darwin)
+ifeq ($(shell uname -s),Darwin) # tested on 17.7
 AR=ar
 RANLIB=ranlib
-LDOPT:=
+NO_VERSIONED:=1
+NO_FLTO:=1
 SONAME:=
 endif
 
-ifeq ($(shell uname -s),OpenBSD)
-ifeq ($(CC),cc)
-CC:=egcc
-endif
+ifeq ($(shell uname -s),FreeBSD) # tested on 14.0
 AR=ar
 RANLIB=ranlib
-CCOPT:=-Wall -Wextra -I. --std=gnu89
-LDOPT:=
+endif
+
+ifeq ($(shell uname -s),OpenBSD) # tested on 7.2
+AR=ar
+RANLIB=ranlib
+NO_VERSIONED:=1
+endif
+
+ifeq ($(shell uname -s),NetBSD) # tested on 9.3
+AR=ar
+RANLIB=ranlib
+NO_VERSIONED:=1
+NO_FLTO:=1
+endif
+
+ifndef NO_FLTO
+CHECK_CC_FLAGS:=-Wall -Wextra -I. --std=gnu89 -fPIC -flto=auto
+else
+CHECK_CC_FLAGS:=-Wall -Wextra -I. --std=gnu89 -fPIC
+endif
+
+# remove unsupported flags from CCOPT
+define check_cc_flag
+$(shell echo 'int main(){return 0;}'|$(CC) $(1) -xc - -o /dev/null 2>/dev/null && echo $(1))
+endef
+HAVE_FLAGS+=$(foreach flag,$(CHECK_CC_FLAGS),$(call check_cc_flag,$(flag)))
+CCOPT:=$(HAVE_FLAGS)
+
+# build versioned library by default
+
+ifndef NO_VERSIONED
+CCOPT+=-DYASCREEN_VERSIONED=1
+LDOPT:=-Wl,--version-script,yascreen.vers
+else
+CCOPT+=-DYASCREEN_VERSIONED=0
 endif
 
 # allow to pass additional compiler flags
@@ -73,7 +95,7 @@ MYLDFLAGS=$(LDFLAGS) $(LDOPT)
 
 all: libyascreen.a libyascreen.so yascreen.pc
 
-yascreen.o: yascreen.c yascreen.h
+yascreen.o: yascreen.c yascreen.h yascreen_feed.c
 	$(CC) $(MYCFLAGS) -o $@ -c $<
 
 yastest.o: yastest.c yascreen.h
@@ -95,7 +117,7 @@ libyascreen.so: libyascreen.so.$(SOVERM)
 libyascreen.so.$(SOVERM): libyascreen.so.$(SOVERF)
 	ln -fs $^ $@
 
-libyascreen.so.$(SOVERF): yascreen.o
+libyascreen.so.$(SOVERF): yascreen.o yascreen.vers
 	$(CC) $(MYCFLAGS) $(MYLDFLAGS) -o $@ $< -fPIC -shared $(SONAME)
 
 yascreen.pc: yascreen.pc.in
@@ -130,6 +152,7 @@ mkotar:
 	tar \
 		--xform 's,^[.],yascreen-$(VER),' \
 		--exclude ./.git \
+		--exclude ./.github \
 		--exclude ./.gitignore \
 		--exclude ./.cvsignore \
 		--exclude ./CVS \
@@ -142,6 +165,6 @@ mkotar:
 	cp -fa ../yascreen_$(VER).orig.tar.xz.asc ../yascreen-$(VER).tar.xz.asc
 
 yascreen.3: README.md
-	go-md2man  < README.md  > yascreen.3
+	go-md2man < README.md > yascreen.3
 
 .PHONY: install clean rebuild re all mkotar
