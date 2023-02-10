@@ -1,3 +1,9 @@
+yascreen (1.96-1~bpo11+1) bullseye-backports; urgency=medium
+
+  * Rebuild for bullseye-backports.
+
+ -- Boian Bonev <bbonev@ipacct.com>  Fri, 10 Feb 2023 18:59:41 +0000
+
 yascreen (1.96-1) unstable; urgency=medium
 
   * Update to new upstream release of 1.96
