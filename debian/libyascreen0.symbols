@@ -3,6 +3,7 @@ libyascreen.so.0 libyascreen0 #MINVER#
  YASCREEN_1.79@YASCREEN_1.79 1.79
  YASCREEN_1.83@YASCREEN_1.83 1.83
  YASCREEN_1.93@YASCREEN_1.93 1.93
+ YASCREEN_1.97@YASCREEN_1.97 1.97
  yascreen_altbuf@YASCREEN_1.79 1.79
  yascreen_ckto@YASCREEN_1.79 1.79
  yascreen_clear@YASCREEN_1.79 1.79
@@ -58,3 +59,4 @@ libyascreen.so.0 libyascreen0 #MINVER#
  yascreen_write@YASCREEN_1.79 1.79
  yascreen_x@YASCREEN_1.79 1.79
  yascreen_y@YASCREEN_1.79 1.79
+ yascreen_willto@YASCREEN_1.97 1.97
