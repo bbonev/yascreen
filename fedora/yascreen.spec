@@ -1,6 +1,6 @@
 Name:           yascreen
-Version:        1.96
-Release:        2%{?dist}
+Version:        1.97
+Release:        1%{?dist}
 Summary:        Yet Another Screen Library (lib(n)curses alternative)
 
 License:        LGPL-3.0
@@ -74,6 +74,9 @@ rm -f $RPM_BUILD_ROOT%{_libdir}/libyascreen.a
 %{_includedir}/yascreen.h
 
 %changelog
+* Fri Feb 17 2023 Boian Bonev <bbonev@ipacct.com> - 1.97-1
+- Update to latest ver 1.97
+
 * Tue Feb 14 2023 Boian Bonev <bbonev@ipacct.com> - 1.96-2
 - SPDX migration
 
