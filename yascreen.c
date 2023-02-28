@@ -1,4 +1,4 @@
-// $Id: yascreen.c,v 1.96 2023/02/03 23:20:18 bbonev Exp $
+// $Id: yascreen.c,v 1.97 2023/02/16 04:40:29 bbonev Exp $
 //
 // Copyright © 2015-2023 Boian Bonev (bbonev@ipacct.com) {{{
 //
@@ -44,7 +44,7 @@
 #define PSIZE (sizeof(char *))
 // step to allocate key buffer
 #define KEYSTEP (4096/sizeof(int))
-// default timeout before escape is returned
+// default timeout in milliseconds before escape is returned
 #define YAS_DEFAULT_ESCTO 300
 
 // check if a given value is a valid simple color value
@@ -132,7 +132,7 @@ struct _yascreen {
 	cell *scr; // screen state
 	struct termios *tsstack; // saved terminal state
 	int tssize; // number of items in the stack
-	int escto; // single ESC key timeout
+	int escto; // single ESC key timeout (in milliseconds)
 	int keysize; // saved key storage size
 	int keycnt; // saved key count
 	int *keys; // saved key array
@@ -313,7 +313,7 @@ inline void *yascreen_get_hint_p(yascreen *s) { // {{{
 	return s->phint;
 } // }}}
 
-static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 1.96 $\n\n"; // {{{
+static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 1.97 $\n\n"; // {{{
 // }}}
 
 inline const char *yascreen_ver(void) { // {{{
@@ -1447,6 +1447,22 @@ inline void yascreen_ckto(yascreen *s) { // {{{
 		s->state=ST_NORM;
 		yascreen_pushch(s,YAS_K_ESC);
 	}
+} // }}}
+
+inline uint64_t yascreen_willto(yascreen *s) { // {{{
+	int64_t now;
+
+	if (!s)
+		return 0;
+
+	if (s->state!=ST_ESC||s->ansipos!=1||s->ansibuf[0]!=YAS_K_ESC||!s->escto)
+		return 0; // no timeout pending
+
+	now=mytime();
+	if (s->escts+s->escto<=now)
+		return 1; // timeout already expired
+	else
+		return s->escts+s->escto-now;
 } // }}}
 
 static inline int yascreen_feed_telnet(yascreen *s,unsigned char c) { // {{{

@@ -1,4 +1,4 @@
-// $Id: yascreen.h,v 1.48 2023/01/02 11:35:04 bbonev Exp $
+// $Id: yascreen.h,v 1.49 2023/02/16 04:40:29 bbonev Exp $
 //
 // Copyright © 2015-2023 Boian Bonev (bbonev@ipacct.com) {{{
 //
@@ -406,13 +406,18 @@ inline int yascreen_x(yascreen *s);
 inline int yascreen_y(yascreen *s);
 
 // keyboard input
-// set timeout for single ESC key press
+// set timeout in milliseconds for single ESC key press
 inline void yascreen_esc_to(yascreen *s,int timeout);
 // in case of external event loop, this call will check for single ESC key
 // should be called regularly enough so that the above specified timeout is not extended too much
 // if not called often enough then single ESC will be yielded after longer timeout
 // if not called at all then single ESC will be yielded with next key press
 inline void yascreen_ckto(yascreen *s);
+// single ESC key and a timeout afterwards is quite the rare event
+// help the application to optimize its event loop by not constantly polling yascreen_ckto
+// yascreen_willto tells if there is a pending timeout and when
+// returns 0 if there is no pending timeout or the remaining time in milliseconds
+inline uint64_t yascreen_willto(yascreen *s);
 // wait for a key, return ASCII or extended keycode, wait no more than timeout in milliseconds
 inline int yascreen_getch_to(yascreen *s,int timeout);
 // zero timeout=wait forever

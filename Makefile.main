@@ -152,7 +152,8 @@ mkotar:
 	tar \
 		--xform 's,^[.],yascreen-$(VER),' \
 		--exclude ./.git \
-		--exclude ./.github \
+		--exclude ./.github/CVS \
+		--exclude ./.github/workflows/CVS \
 		--exclude ./.gitignore \
 		--exclude ./.cvsignore \
 		--exclude ./CVS \

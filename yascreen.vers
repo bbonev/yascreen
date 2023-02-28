@@ -66,3 +66,8 @@ YASCREEN_1.93 {
 		yascreen_ungetwch;
 		yascreen_peekwch;
 } YASCREEN_1.83;
+YASCREEN_1.97 {
+	global:
+		# newly added
+		yascreen_willto;
+} YASCREEN_1.93;
