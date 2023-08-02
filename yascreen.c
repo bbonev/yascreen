@@ -1,4 +1,4 @@
-// $Id: yascreen.c,v 1.98 2023/08/02 17:22:45 bbonev Exp $
+// $Id: yascreen.c,v 1.99 2023/08/02 17:32:12 bbonev Exp $
 //
 // Copyright © 2015-2023 Boian Bonev (bbonev@ipacct.com) {{{
 //
@@ -314,7 +314,7 @@ inline void *yascreen_get_hint_p(yascreen *s) { // {{{
 	return s->phint;
 } // }}}
 
-static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 1.98 $\n\n"; // {{{
+static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 1.99 $\n\n"; // {{{
 // }}}
 
 inline const char *yascreen_ver(void) { // {{{
@@ -1440,13 +1440,26 @@ inline int yascreen_y(yascreen *s) { // {{{
 } // }}}
 
 inline void yascreen_ckto(yascreen *s) { // {{{
+	int64_t now;
+
 	if (!s)
 		return;
 
-	if (s->state==ST_ESC&&s->ansipos==1&&s->ansibuf[0]==YAS_K_ESC&&s->escto&&s->escts+s->escto<mytime()) {
+	now=mytime();
+
+	if (s->state==ST_ESC&&s->ansipos==1&&s->escto&&s->escts+s->escto<now) {
 		s->ansipos=0;
 		s->state=ST_NORM;
 		yascreen_pushch(s,YAS_K_ESC);
+	}
+	if (s->state==ST_ESC_ESC&&s->ansipos==2&&s->escto&&s->escts+s->escto<now) {
+		s->ansipos=0;
+		s->state=ST_NORM;
+		yascreen_pushch(s,YAS_K_ESC); // return a double escape as a signle one, is that the proper way?
+	}
+	if ((s->state==ST_ESC||s->state==ST_ESC_ESC)&&s->escto&&s->escts+s->escto<now) {
+		s->ansipos=0;
+		s->state=ST_NORM; // ignore slow escape sequences
 	}
 } // }}}
 
