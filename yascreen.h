@@ -1,4 +1,4 @@
-// $Id: yascreen.h,v 1.49 2023/02/16 04:40:29 bbonev Exp $
+// $Id: yascreen.h,v 1.50 2023/08/02 17:21:43 bbonev Exp $
 //
 // Copyright © 2015-2023 Boian Bonev (bbonev@ipacct.com) {{{
 //
@@ -265,6 +265,10 @@ typedef enum {
 	YAS_K_S_UP=0xf0040,
 	YAS_K_S_DOWN=0xf0041,
 	YAS_K_S_RIGHT=0xf0042,
+	YAS_K_A_LEFT=0xf0043,
+	YAS_K_A_UP=0xf0044,
+	YAS_K_A_DOWN=0xf0045,
+	YAS_K_A_RIGHT=0xf0046,
 	// ALT+letter
 	YAS_K_A_BT=YAS_K_ALT('`'),
 	YAS_K_A_1=YAS_K_ALT('1'),

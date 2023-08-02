@@ -392,6 +392,10 @@ There is a macro `YAS_IS_CC(code)` that will evaluate to non-zero for the specia
 | `YAS_K_S_UP`     | 0xf0040 | Shift-Up |
 | `YAS_K_S_DOWN`   | 0xf0041 | Shift-Down |
 | `YAS_K_S_RIGHT`  | 0xf0042 | Shift-Right |
+| `YAS_K_A_LEFT`   | 0xf0043 | Alt-Left |
+| `YAS_K_A_UP`     | 0xf0044 | Alt-Up |
+| `YAS_K_A_DOWN`   | 0xf0045 | Alt-Down |
+| `YAS_K_A_RIGHT`  | 0xf0046 | Alt-Right |
 
 -   Alt-\<letter\>
 
