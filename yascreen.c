@@ -1,4 +1,4 @@
-// $Id: yascreen.c,v 1.97 2023/02/16 04:40:29 bbonev Exp $
+// $Id: yascreen.c,v 1.98 2023/08/02 17:22:45 bbonev Exp $
 //
 // Copyright © 2015-2023 Boian Bonev (bbonev@ipacct.com) {{{
 //
@@ -96,6 +96,7 @@ typedef enum { // ansi sequence state machine
 	ST_ESC_SQ, // escape [ sequence
 	ST_ESC_SQ_D, // escape [ digit sequence
 	ST_ESC_O, // escape O sequence
+	ST_ESC_ESC, // escape escape sequence
 } yas_k_state;
 
 typedef enum { // telnet sequence state machine
@@ -313,7 +314,7 @@ inline void *yascreen_get_hint_p(yascreen *s) { // {{{
 	return s->phint;
 } // }}}
 
-static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 1.97 $\n\n"; // {{{
+static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 1.98 $\n\n"; // {{{
 // }}}
 
 inline const char *yascreen_ver(void) { // {{{
