@@ -1,4 +1,4 @@
-// $Id: yascreen_feed.c,v 1.4 2023/02/03 23:20:18 bbonev Exp $
+// $Id: yascreen_feed.c,v 1.5 2023/08/02 17:33:29 bbonev Exp $
 
 symver_V(V(yascreen_feed,V193),yascreen_feed,YASCREEN_193) // {{{
 inline void V(yascreen_feed,V193)(yascreen *s,unsigned char c) {
@@ -307,6 +307,10 @@ inline void V(yascreen_feed,V193)(yascreen *s,unsigned char c) {
 					s->ansibuf[s->ansipos++]=c;
 					s->state=ST_ESC_O;
 					break;
+				case YAS_K_ESC:
+					s->ansibuf[s->ansipos++]=c;
+					s->state=ST_ESC_ESC;
+					break;
 				default: // ignore unknown sequence
 					s->state=ST_NORM;
 					break;
@@ -336,6 +340,22 @@ inline void V(yascreen_feed,V193)(yascreen *s,unsigned char c) {
 					break;
 				case 'F': // end
 					yascreen_pushch(s,YAS_K_END);
+					s->state=ST_NORM;
+					break;
+				case 'a': // shift-up - \e[a
+					yascreen_pushch(s,YAS_K_S_UP);
+					s->state=ST_NORM;
+					break;
+				case 'b': // shift-down - \e[b
+					yascreen_pushch(s,YAS_K_S_DOWN);
+					s->state=ST_NORM;
+					break;
+				case 'c': // shift-right - \e[c
+					yascreen_pushch(s,YAS_K_S_RIGHT);
+					s->state=ST_NORM;
+					break;
+				case 'd': // shift-left - \e[d
+					yascreen_pushch(s,YAS_K_S_LEFT);
 					s->state=ST_NORM;
 					break;
 				case '0'...'9':
@@ -449,24 +469,32 @@ inline void V(yascreen_feed,V193)(yascreen *s,unsigned char c) {
 							yascreen_pushch(s,YAS_K_C_UP);
 						if (s->ansipos==6&&s->ansibuf[2]=='1'&&s->ansibuf[3]==';'&&s->ansibuf[4]=='2') // shift-up - \e[1;2A
 							yascreen_pushch(s,YAS_K_S_UP);
+						if (s->ansipos==6&&s->ansibuf[2]=='1'&&s->ansibuf[3]==';'&&s->ansibuf[4]=='3') // alt-up - \e[1;3A
+							yascreen_pushch(s,YAS_K_A_UP);
 						break;
 					case 'B':
 						if (s->ansipos==6&&s->ansibuf[2]=='1'&&s->ansibuf[3]==';'&&s->ansibuf[4]=='5') // ^down - \e[1;5B
 							yascreen_pushch(s,YAS_K_C_DOWN);
 						if (s->ansipos==6&&s->ansibuf[2]=='1'&&s->ansibuf[3]==';'&&s->ansibuf[4]=='2') // shift-down - \e[1;2B
 							yascreen_pushch(s,YAS_K_S_DOWN);
+						if (s->ansipos==6&&s->ansibuf[2]=='1'&&s->ansibuf[3]==';'&&s->ansibuf[4]=='3') // alt-down - \e[1;3B
+							yascreen_pushch(s,YAS_K_A_DOWN);
 						break;
 					case 'C':
 						if (s->ansipos==6&&s->ansibuf[2]=='1'&&s->ansibuf[3]==';'&&s->ansibuf[4]=='5') // ^right - \e[1;5C
 							yascreen_pushch(s,YAS_K_C_RIGHT);
 						if (s->ansipos==6&&s->ansibuf[2]=='1'&&s->ansibuf[3]==';'&&s->ansibuf[4]=='2') // shift-right - \e[1;2C
 							yascreen_pushch(s,YAS_K_S_RIGHT);
+						if (s->ansipos==6&&s->ansibuf[2]=='1'&&s->ansibuf[3]==';'&&s->ansibuf[4]=='3') // alt-right - \e[1;3C
+							yascreen_pushch(s,YAS_K_A_RIGHT);
 						break;
 					case 'D':
 						if (s->ansipos==6&&s->ansibuf[2]=='1'&&s->ansibuf[3]==';'&&s->ansibuf[4]=='5') // ^left - \e[1;5D
 							yascreen_pushch(s,YAS_K_C_LEFT);
 						if (s->ansipos==6&&s->ansibuf[2]=='1'&&s->ansibuf[3]==';'&&s->ansibuf[4]=='2') // shift-left - \e[1;2D
 							yascreen_pushch(s,YAS_K_S_LEFT);
+						if (s->ansipos==6&&s->ansibuf[2]=='1'&&s->ansibuf[3]==';'&&s->ansibuf[4]=='3') // alt-left - \e[1;3D
+							yascreen_pushch(s,YAS_K_A_LEFT);
 						break;
 				}
 			}
@@ -529,6 +557,35 @@ inline void V(yascreen_feed,V193)(yascreen *s,unsigned char c) {
 					break;
 			}
 			s->state=ST_NORM;
+			break;
+		case ST_ESC_ESC:
+			if (s->ansipos>=sizeof s->ansibuf) { // buffer overrun, ignore the sequence
+				s->state=ST_NORM;
+				break;
+			}
+			s->ansibuf[s->ansipos++]=c;
+			if (c>=0x40&&c<=0x7e&&c!=0x5b) { // final char
+				s->state=ST_NORM;
+				s->ansibuf[s->ansipos]=0;
+				switch (c) {
+					case 'A':
+						if (s->ansipos==4&&s->ansibuf[2]=='[') // alt-up - \e\e[A
+							yascreen_pushch(s,YAS_K_A_UP);
+						break;
+					case 'B':
+						if (s->ansipos==4&&s->ansibuf[2]=='[') // alt-down - \e\e[B
+							yascreen_pushch(s,YAS_K_A_DOWN);
+						break;
+					case 'C':
+						if (s->ansipos==4&&s->ansibuf[2]=='[') // alt-right - \e\e[C
+							yascreen_pushch(s,YAS_K_A_RIGHT);
+						break;
+					case 'D':
+						if (s->ansipos==4&&s->ansibuf[2]=='[') // alt-left - \e\e[D
+							yascreen_pushch(s,YAS_K_A_LEFT);
+						break;
+				}
+			}
 			break;
 	}
 } // }}}
