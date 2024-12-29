@@ -1,4 +1,4 @@
-// $Id: yascreen.c,v 1.99 2023/08/02 17:32:12 bbonev Exp $
+// $Id: yascreen.c,v 2.01 2024/12/29 03:18:42 bbonev Exp $
 //
 // Copyright © 2015-2023 Boian Bonev (bbonev@ipacct.com) {{{
 //
@@ -314,7 +314,7 @@ inline void *yascreen_get_hint_p(yascreen *s) { // {{{
 	return s->phint;
 } // }}}
 
-static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 1.99 $\n\n"; // {{{
+static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 2.01 $\n\n"; // {{{
 // }}}
 
 inline const char *yascreen_ver(void) { // {{{
@@ -357,10 +357,19 @@ inline yascreen *yascreen_init(int sx,int sy) { // {{{
 			struct winsize ws={0};
 
 			if (!ioctl(STDOUT_FILENO,TIOCGWINSZ,&ws)) {
+				if (!ws.ws_col)
+					ws.ws_col=80;
+				if (!ws.ws_row)
+					ws.ws_row=24;
 				if (!sx)
 					sx=ws.ws_col;
 				if (!sy)
 					sy=ws.ws_row;
+			} else {
+				if (!sx)
+					sx=80;
+				if (!sy)
+					sy=24;
 			}
 		}
 	}
@@ -495,10 +504,19 @@ inline int yascreen_resize(yascreen *s,int sx,int sy) { // {{{
 			struct winsize ws={0};
 
 			if (!ioctl(STDOUT_FILENO,TIOCGWINSZ,&ws)) {
+				if (!ws.ws_col)
+					ws.ws_col=80;
+				if (!ws.ws_row)
+					ws.ws_row=24;
 				if (!sx)
 					sx=ws.ws_col;
 				if (!sy)
 					sy=ws.ws_row;
+			} else {
+				if (!sx)
+					sx=80;
+				if (!sy)
+					sy=24;
 			}
 		}
 
