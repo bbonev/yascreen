@@ -25,7 +25,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     container: ${{ matrix.container }}
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - if: ${{ matrix.cc == 'clang' }}
       run: |
@@ -48,13 +48,14 @@ jobs:
       run: make
 
   freebsd:
-    runs-on: macos-13
+    runs-on: ubuntu-latest
     name: FreeBSD Test
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Test
-      uses: vmactions/freebsd-vm@v0
+      uses: vmactions/freebsd-vm@v1
       with:
+        release: "15.0"
         usesh: true
         prepare:  |
           pkg install -y gmake
