@@ -49,16 +49,32 @@ jobs:
 
   freebsd:
     runs-on: ubuntu-latest
-    name: FreeBSD Test
+    name: build (FreeBSD 15.0)
     steps:
     - uses: actions/checkout@v4
-    - name: Test
+    - name: Test in FreeBSD 15.0
       uses: vmactions/freebsd-vm@v1
       with:
         release: "15.0"
         usesh: true
         prepare:  |
           pkg install -y gmake
+        run: |
+          cc --version
+          gmake
+
+  openbsd:
+    runs-on: ubuntu-latest
+    name: build (OpenBSD 7.6)
+    steps:
+    - uses: actions/checkout@v4
+    - name: Test in OpenBSD 7.6
+      uses: vmactions/openbsd-vm@v1
+      with:
+        release: "7.6"
+        usesh: true
+        prepare:  |
+          pkg_add gmake
         run: |
           cc --version
           gmake
