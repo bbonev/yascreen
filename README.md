@@ -1,4 +1,4 @@
-# YASCREEN 3 "September 30, 2020" yascreen "User-Manual"
+# YASCREEN 3 "December 29, 2024" yascreen "User-Manual"
 
 # NAME
   yascreen - Yet Another Screen Library (curses replacement for daemons and embedded apps)
@@ -33,7 +33,7 @@ On \*BSD a `gmake` is required to build.
 
 ## Architecture
 
-yascreen uses an opaque data structure, allocated by the library and dynamically resized when needed - `yascreen_init(int sx, int sy)` / `yascreen_resize(yascreen *s, int sx, int sy)`. An application may specify (0,0) for both calls to let yascreen detect the size or use a fixed size.
+yascreen uses an opaque data structure, allocated by the library and dynamically resized when needed - `yascreen_init(int sx, int sy)` / `yascreen_resize(yascreen *s, int sx, int sy)`. An application may specify (0,0) for both calls to let yascreen detect the size or use a fixed size. In case the terminal has zero size or does not support the `TIOCGWINSZ` `ioctl`, the size will default to 80x24.
 
 There are two modes of operation - telnet protocol over socket or running in terminal. For sockets the event loop would typically be handled outside of the library while for terminals a built-in event loop may be used.
 
@@ -475,6 +475,7 @@ allocate and initialize screen data
 output defaults to stdout
 
 in case output is a terminal and initial size is (0,0), the screen size is autodetected
+in case the autodetection fails or returns 0x0, it will default to 80x24
 
 in case of error, returns `NULL`
 
