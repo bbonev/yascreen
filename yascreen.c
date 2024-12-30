@@ -1,4 +1,4 @@
-// $Id: yascreen.c,v 2.01 2024/12/29 03:18:42 bbonev Exp $
+// $Id: yascreen.c,v 2.02 2024/12/30 19:32:14 bbonev Exp $
 //
 // Copyright © 2015-2023 Boian Bonev (bbonev@ipacct.com) {{{
 //
@@ -314,11 +314,37 @@ inline void *yascreen_get_hint_p(yascreen *s) { // {{{
 	return s->phint;
 } // }}}
 
-static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 2.01 $\n\n"; // {{{
+static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 2.02 $\n\n"; // {{{
 // }}}
 
 inline const char *yascreen_ver(void) { // {{{
 	return myver;
+} // }}}
+
+static inline void yascreen_auto_size(yascreen *s,int *sx,int *sy) { // {{{
+	if (!sx||!sy)
+		return;
+
+	if (!*sx||!*sy)
+		if (!s->outcb&&isatty(STDOUT_FILENO)) {
+			struct winsize ws={0};
+
+			if (!ioctl(STDOUT_FILENO,TIOCGWINSZ,&ws)) {
+				if (!ws.ws_col)
+					ws.ws_col=80;
+				if (!ws.ws_row)
+					ws.ws_row=24;
+				if (!*sx)
+					*sx=ws.ws_col;
+				if (!*sy)
+					*sy=ws.ws_row;
+			} else {
+				if (!*sx)
+					*sx=80;
+				if (!*sy)
+					*sy=24;
+			}
+		}
 } // }}}
 
 inline yascreen *yascreen_init(int sx,int sy) { // {{{
@@ -353,25 +379,8 @@ inline yascreen *yascreen_init(int sx,int sy) { // {{{
 		}
 		s->tssize=1;
 		tcgetattr(STDOUT_FILENO,s->tsstack);
-		if (!sx||!sy) {
-			struct winsize ws={0};
 
-			if (!ioctl(STDOUT_FILENO,TIOCGWINSZ,&ws)) {
-				if (!ws.ws_col)
-					ws.ws_col=80;
-				if (!ws.ws_row)
-					ws.ws_row=24;
-				if (!sx)
-					sx=ws.ws_col;
-				if (!sy)
-					sy=ws.ws_row;
-			} else {
-				if (!sx)
-					sx=80;
-				if (!sy)
-					sy=24;
-			}
-		}
+		yascreen_auto_size(s,&sx,&sy);
 	}
 	if (sx<=0||sy<=0) {
 		if (s->tsstack)
@@ -499,26 +508,7 @@ inline int yascreen_resize(yascreen *s,int sx,int sy) { // {{{
 	if (sx<0||sy<0)
 		return -1;
 
-	if (!sx||!sy)
-		if (!s->outcb&&isatty(STDOUT_FILENO)) {
-			struct winsize ws={0};
-
-			if (!ioctl(STDOUT_FILENO,TIOCGWINSZ,&ws)) {
-				if (!ws.ws_col)
-					ws.ws_col=80;
-				if (!ws.ws_row)
-					ws.ws_row=24;
-				if (!sx)
-					sx=ws.ws_col;
-				if (!sy)
-					sy=ws.ws_row;
-			} else {
-				if (!sx)
-					sx=80;
-				if (!sy)
-					sy=24;
-			}
-		}
+	yascreen_auto_size(s,&sx,&sy);
 
 	if (sx<=0||sy<=0)
 		return -1;
