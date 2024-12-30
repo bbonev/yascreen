@@ -1,4 +1,4 @@
-// $Id: yascreen.c,v 2.03 2024/12/30 19:59:00 bbonev Exp $
+// $Id: yascreen.c,v 2.04 2024/12/30 22:39:25 bbonev Exp $
 //
 // Copyright © 2015-2023 Boian Bonev (bbonev@ipacct.com) {{{
 //
@@ -314,7 +314,7 @@ inline void *yascreen_get_hint_p(yascreen *s) { // {{{
 	return s->phint;
 } // }}}
 
-static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 2.03 $\n\n"; // {{{
+static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 2.04 $\n\n"; // {{{
 // }}}
 
 inline const char *yascreen_ver(void) { // {{{
@@ -345,6 +345,24 @@ static inline void yascreen_auto_size(yascreen *s,int *sx,int *sy) { // {{{
 					*sy=24;
 			}
 		}
+} // }}}
+
+static inline void yascreen_free_cell(yascreen *s,int i) { // {{{
+	if (s->mem[i].style&YAS_STORAGE)
+		free(s->mem[i].p);
+	if (s->scr[i].style&YAS_STORAGE)
+		free(s->scr[i].p);
+} // }}}
+
+static inline void yascreen_free_dynamic(yascreen *s) { // {{{
+	if (s->mem)
+		free(s->mem);
+	if (s->scr)
+		free(s->scr);
+	if (s->tsstack)
+		free(s->tsstack);
+	if (s->keys)
+		free(s->keys);
 } // }}}
 
 inline yascreen *yascreen_init(int sx,int sy) { // {{{
@@ -383,8 +401,7 @@ inline yascreen *yascreen_init(int sx,int sy) { // {{{
 		yascreen_auto_size(s,&sx,&sy);
 	}
 	if (sx<=0||sy<=0) {
-		if (s->tsstack)
-			free(s->tsstack);
+		yascreen_free_dynamic(s);
 		free(s);
 		return NULL;
 	}
@@ -426,8 +443,7 @@ inline yascreen *yascreen_init(int sx,int sy) { // {{{
 
 	s->keys=(int *)calloc(KEYSTEP,sizeof(int));
 	if (!s->keys) {
-		if (s->tsstack)
-			free(s->tsstack);
+		yascreen_free_dynamic(s);
 		free(s);
 		return NULL;
 	}
@@ -435,14 +451,7 @@ inline yascreen *yascreen_init(int sx,int sy) { // {{{
 	s->mem=(cell *)calloc(sx*sy,sizeof(cell));
 	s->scr=(cell *)calloc(sx*sy,sizeof(cell));
 	if (!s->mem||!s->scr) {
-		if (s->mem)
-			free(s->mem);
-		if (s->scr)
-			free(s->scr);
-		if (s->tsstack)
-			free(s->tsstack);
-		if (s->keys)
-			free(s->keys);
+		yascreen_free_dynamic(s);
 		free(s);
 		return NULL;
 	}
@@ -517,10 +526,7 @@ inline int yascreen_resize(yascreen *s,int sx,int sy) { // {{{
 		return 0;
 
 	for (i=0;i<s->sx*s->sy;i++) { // free old allocated data and set for reusage
-		if (s->mem[i].style&YAS_STORAGE)
-			free(s->mem[i].p);
-		if (s->scr[i].style&YAS_STORAGE)
-			free(s->scr[i].p);
+		yascreen_free_cell(s,i);
 		if (i<sx*sy) {
 			s->mem[i].style=s->scr[i].style=0;
 			s->mem[i].d[0]=' ';
@@ -556,29 +562,13 @@ inline void yascreen_free(yascreen *s) { // {{{
 		return;
 
 	if (!s->mem||!s->scr) { // error condition that will happen only if mem is corrupt
-		if (s->mem)
-			free(s->mem);
-		if (s->scr)
-			free(s->scr);
-		if (s->tsstack)
-			free(s->tsstack);
-		if (s->keys)
-			free(s->keys);
+		yascreen_free_dynamic(s);
 		free(s); // most probably will crash, because there is no way to have s partally initialized
 		return;
 	}
-	for (i=0;i<s->sx*s->sy;i++) {
-		if (s->mem[i].style&YAS_STORAGE)
-			free(s->mem[i].p);
-		if (s->scr[i].style&YAS_STORAGE)
-			free(s->scr[i].p);
-	}
-	free(s->mem);
-	free(s->scr);
-	if (s->tsstack)
-		free(s->tsstack);
-	if (s->keys)
-		free(s->keys);
+	for (i=0;i<s->sx*s->sy;i++)
+		yascreen_free_cell(s,i);
+	yascreen_free_dynamic(s);
 	outs(s,ESC"[0m");
 	free(s);
 } // }}}
@@ -1653,21 +1643,30 @@ inline int V(yascreen_getch_to,V193)(yascreen *s,int timeout) {
 	return yascreen_getch_to_gen(s,timeout,YAS_K_NONE);
 } // }}}
 
-inline void yascreen_ungetch(yascreen *s,int key) { // {{{
+static inline int yascreen_realloc_keys(yascreen *s) { // {{{
 	int *tk;
 
 	if (!s)
-		return;
+		return 1;
 
 	if (s->keysize<=s->keycnt) { // need to reallocate key storage
 		int newsize=s->keysize+KEYSTEP;
 
 		tk=(int *)realloc(s->keys,sizeof(int)*newsize);
 		if (!tk)
-			return;
+			return 1;
 		s->keys=tk;
 		s->keysize=newsize;
 	}
+	return 0;
+} // }}}
+
+inline void yascreen_ungetch(yascreen *s,int key) { // {{{
+	if (!s)
+		return;
+
+	if (yascreen_realloc_keys(s))
+		return;
 
 	memmove(s->keys+1,s->keys,sizeof(int)*s->keycnt);
 	s->keys[0]=key;
@@ -1675,20 +1674,11 @@ inline void yascreen_ungetch(yascreen *s,int key) { // {{{
 } // }}}
 
 inline void yascreen_pushch(yascreen *s,int key) { // {{{
-	int *tk;
-
 	if (!s)
 		return;
 
-	if (s->keysize<=s->keycnt) { // need to reallocate key storage
-		int newsize=s->keysize+KEYSTEP;
-
-		tk=(int *)realloc(s->keys,sizeof(int)*newsize);
-		if (!tk)
-			return;
-		s->keys=tk;
-		s->keysize=newsize;
-	}
+	if (yascreen_realloc_keys(s))
+		return;
 
 	s->keys[s->keycnt++]=key;
 } // }}}
