@@ -1,4 +1,4 @@
-# YASCREEN 3 "December 29, 2024" yascreen "User-Manual"
+# YASCREEN 3 "January 15, 2025" yascreen "User-Manual"
 
 # NAME
   yascreen - Yet Another Screen Library (curses replacement for daemons and embedded apps)

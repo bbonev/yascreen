@@ -4,11 +4,11 @@ Upstream-Contact: Boian Bonev <bbonev@ipacct.com>
 Source: https://github.com/bbonev/yascreen
 
 Files: *
-Copyright: 2015-2023 Boian Bonev <bbonev@ipacct.com>
+Copyright: 2015-2025 Boian Bonev <bbonev@ipacct.com>
 License: LGPL-3+
 
 Files: debian/*
-Copyright: 2020-2023 Boian Bonev <bbonev@ipacct.com>
+Copyright: 2020-2025 Boian Bonev <bbonev@ipacct.com>
 License: LGPL-3+
 
 License: LGPL-3+

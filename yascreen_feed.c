@@ -1,4 +1,13 @@
-// $Id: yascreen_feed.c,v 1.5 2023/08/02 17:33:29 bbonev Exp $
+// $Id: yascreen_feed.c,v 1.6 2025/01/15 15:57:59 bbonev Exp $
+
+// Copyright © 2015-2025 Boian Bonev (bbonev@ipacct.com) {{{
+//
+// SPDX-License-Identifer: LGPL-3.0-or-later
+//
+// This file is part of yascreen - yet another screen library.
+//
+// yascreen is free software, released under the terms of GNU Lesser General Public License v3.0 or later
+// }}}
 
 symver_V(V(yascreen_feed,V193),yascreen_feed,YASCREEN_193) // {{{
 inline void V(yascreen_feed,V193)(yascreen *s,unsigned char c) {
