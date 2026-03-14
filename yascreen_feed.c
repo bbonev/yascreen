@@ -1,6 +1,6 @@
-// $Id: yascreen_feed.c,v 1.7 2026/03/14 20:20:04 bbonev Exp $
+// $Id: yascreen_feed.c,v 1.8 2026/03/14 22:06:37 bbonev Exp $
 
-// Copyright © 2015-2025 Boian Bonev (bbonev@ipacct.com) {{{
+// Copyright © 2015-2026 Boian Bonev (bbonev@ipacct.com) {{{
 //
 // SPDX-License-Identifer: LGPL-3.0-or-later
 //
