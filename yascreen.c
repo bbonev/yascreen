@@ -1,4 +1,4 @@
-// $Id: yascreen.c,v 2.07 2026/03/14 20:20:04 bbonev Exp $
+// $Id: yascreen.c,v 2.08 2026/03/14 21:05:48 bbonev Exp $
 //
 // Copyright © 2015-2025 Boian Bonev (bbonev@ipacct.com) {{{
 //
@@ -318,7 +318,7 @@ inline void *yascreen_get_hint_p(yascreen *s) { // {{{
 	return s->phint;
 } // }}}
 
-static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 2.07 $\n\n"; // {{{
+static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 2.08 $\n\n"; // {{{
 // }}}
 
 inline const char *yascreen_ver(void) { // {{{
@@ -351,14 +351,14 @@ static inline void yascreen_auto_size(yascreen *s,int *sx,int *sy) { // {{{
 		}
 } // }}}
 
-static inline void yascreen_free_memcell(yascreen *s,int i) { // {{{
+static inline void yascreen_free_memcell(yascreen *s,size_t i) { // {{{
 	if (s->mem[i].style&YAS_STORAGE) {
 		free(s->mem[i].p);
 		s->mem[i].style&=~YAS_STORAGE;
 	}
 } // }}}
 
-static inline void yascreen_free_cell(yascreen *s,int i) { // {{{
+static inline void yascreen_free_cell(yascreen *s,size_t i) { // {{{
 	yascreen_free_memcell(s,i);
 	if (s->scr[i].style&YAS_STORAGE) {
 		free(s->scr[i].p);
@@ -366,14 +366,14 @@ static inline void yascreen_free_cell(yascreen *s,int i) { // {{{
 	}
 } // }}}
 
-static inline void yascreen_empty_cell(yascreen *s,int i) { // {{{
+static inline void yascreen_empty_cell(yascreen *s,size_t i) { // {{{
 	s->mem[i].style=s->scr[i].style=0;
 	s->mem[i].d[0]=' ';
 	s->mem[i].d[1]=0;
 	s->scr[i].d[0]=0;
 } // }}}
 
-static inline void yascreen_free_empty_cell(yascreen *s,int i) { // {{{
+static inline void yascreen_free_empty_cell(yascreen *s,size_t i) { // {{{
 	yascreen_free_cell(s,i);
 	yascreen_empty_cell(s,i);
 } // }}}
@@ -391,7 +391,7 @@ static inline void yascreen_free_dynamic(yascreen *s) { // {{{
 
 inline yascreen *yascreen_init(int sx,int sy) { // {{{
 	yascreen *s;
-	int i;
+	size_t i;
 
 	if (myver[0]==0) { // reformat the static version string
 		char *rev=strstr(myver+1,"$Revision: ");
@@ -472,15 +472,15 @@ inline yascreen *yascreen_init(int sx,int sy) { // {{{
 		return NULL;
 	}
 	s->keysize=KEYSTEP;
-	s->mem=(cell *)calloc(sx*sy,sizeof(cell));
-	s->scr=(cell *)calloc(sx*sy,sizeof(cell));
+	s->mem=(cell *)calloc((size_t)sx*sy,sizeof(cell));
+	s->scr=(cell *)calloc((size_t)sx*sy,sizeof(cell));
 	if (!s->mem||!s->scr) {
 		yascreen_free_dynamic(s);
 		free(s);
 		return NULL;
 	}
 
-	for (i=0;i<sx*sy;i++)
+	for (i=0;i<(size_t)sx*sy;i++)
 		strncpy(s->mem[i].d," ",sizeof s->mem[i].d);
 	return s;
 } // }}}
@@ -533,7 +533,7 @@ inline void yascreen_init_telnet(yascreen *s) { // {{{
 
 inline int yascreen_resize(yascreen *s,int sx,int sy) { // {{{
 	cell *mem,*scr;
-	int i;
+	size_t i;
 
 	if (!s)
 		return -1;
@@ -549,21 +549,21 @@ inline int yascreen_resize(yascreen *s,int sx,int sy) { // {{{
 	if (s->sx==sx&&s->sy==sy)
 		return 0;
 
-	for (i=0;i<s->sx*s->sy;i++) // free old allocated data and set for reusage
-		if (i<sx*sy)
+	for (i=0;i<(size_t)s->sx*s->sy;i++) // free old allocated data and set for reusage
+		if (i<(size_t)sx*sy)
 			yascreen_free_empty_cell(s,i);
 		else
 			yascreen_free_cell(s,i);
-	if (sx*sy>s->sx*s->sy) { // allocate bigger buffer
-		mem=(cell *)realloc(s->mem,sx*sy*sizeof(cell));
+	if ((size_t)sx*sy>(size_t)s->sx*s->sy) { // allocate bigger buffer
+		mem=(cell *)realloc(s->mem,(size_t)sx*sy*sizeof(cell));
 		if (!mem)
 			return -1;
 		s->mem=mem;
-		scr=(cell *)realloc(s->scr,sx*sy*sizeof(cell));
+		scr=(cell *)realloc(s->scr,(size_t)sx*sy*sizeof(cell));
 		if (!scr)
 			return -1;
 		s->scr=scr;
-		for (i=s->sx*s->sy;i<sx*sy;i++) // initialize the rest of the area
+		for (i=(size_t)s->sx*s->sy;i<(size_t)sx*sy;i++) // initialize the rest of the area
 			yascreen_empty_cell(s,i);
 	}
 	s->redraw=1;
@@ -574,7 +574,7 @@ inline int yascreen_resize(yascreen *s,int sx,int sy) { // {{{
 } // }}}
 
 inline void yascreen_free(yascreen *s) { // {{{
-	int i;
+	size_t i;
 
 	if (!s)
 		return;
@@ -584,7 +584,7 @@ inline void yascreen_free(yascreen *s) { // {{{
 		free(s); // most probably will crash, because there is no way to have s partally initialized
 		return;
 	}
-	for (i=0;i<s->sx*s->sy;i++)
+	for (i=0;i<(size_t)s->sx*s->sy;i++)
 		yascreen_free_cell(s,i);
 	yascreen_free_dynamic(s);
 	outs(s,ESC"[0m");
@@ -655,16 +655,16 @@ static inline int yascreen_update_range(yascreen *s,int y1,int y2) { // {{{
 	for (j=y1;j<y2;j++) {
 		int skip=1,cnt=0;
 
-		if (!redraw&&!(s->mem[s->sx*j].style&YAS_TOUCHED)) // skip untouched lines
+		if (!redraw&&!(s->mem[(size_t)s->sx*j].style&YAS_TOUCHED)) // skip untouched lines
 			continue;
-		s->mem[s->sx*j].style&=~YAS_TOUCHED; // mark updated lines as not touched
+		s->mem[(size_t)s->sx*j].style&=~YAS_TOUCHED; // mark updated lines as not touched
 		for (i=0;i<s->sx;i++) {
 			int diff=redraw; // forced redraw
 
 			if (!diff) // compare attributes
-				diff=(s->mem[i+s->sx*j].style&~YAS_INTERNAL)!=(s->scr[i+s->sx*j].style&~YAS_INTERNAL);
+				diff=(s->mem[i+(size_t)s->sx*j].style&~YAS_INTERNAL)!=(s->scr[i+(size_t)s->sx*j].style&~YAS_INTERNAL);
 			if (!diff) // compare content
-				diff=!!strcmp((s->mem[i+s->sx*j].style&YAS_STORAGE)?s->mem[i+s->sx*j].p:s->mem[i+s->sx*j].d,(s->scr[i+s->sx*j].style&YAS_STORAGE)?s->scr[i+s->sx*j].p:s->scr[i+s->sx*j].d);
+				diff=!!strcmp((s->mem[i+(size_t)s->sx*j].style&YAS_STORAGE)?s->mem[i+(size_t)s->sx*j].p:s->mem[i+(size_t)s->sx*j].d,(s->scr[i+(size_t)s->sx*j].style&YAS_STORAGE)?s->scr[i+(size_t)s->sx*j].p:s->scr[i+(size_t)s->sx*j].d);
 
 			if (diff||!skip) {
 				if (skip) {
@@ -679,25 +679,25 @@ static inline int yascreen_update_range(yascreen *s,int y1,int y2) { // {{{
 						cnt=0;
 					}
 					while (cnt>=0) {
-						nsty=s->mem[j*s->sx+i-cnt].style&~YAS_INTERNAL;
+						nsty=s->mem[(size_t)j*s->sx+i-cnt].style&~YAS_INTERNAL;
 						if (lsty!=nsty) {
 							yascreen_update_attr(s,lsty,nsty);
 							lsty=nsty;
 						}
-						outs(s,(s->mem[j*s->sx+i-cnt].style&YAS_STORAGE)?s->mem[j*s->sx+i-cnt].p:s->mem[j*s->sx+i-cnt].d);
+						outs(s,(s->mem[(size_t)j*s->sx+i-cnt].style&YAS_STORAGE)?s->mem[(size_t)j*s->sx+i-cnt].p:s->mem[(size_t)j*s->sx+i-cnt].d);
 						cnt--;
 					}
 					cnt=0; // loop above leaves cnt at -1
 				} else
 					cnt++;
 			}
-			if (s->scr[j*s->sx+i].style&YAS_STORAGE)
-				free(s->scr[j*s->sx+i].p);
-			s->scr[j*s->sx+i].style=s->mem[j*s->sx+i].style;
-			if (s->mem[j*s->sx+i].style&YAS_STORAGE)
-				s->scr[j*s->sx+i].p=strdup(s->mem[j*s->sx+i].p);
+			if (s->scr[(size_t)j*s->sx+i].style&YAS_STORAGE)
+				free(s->scr[(size_t)j*s->sx+i].p);
+			s->scr[(size_t)j*s->sx+i].style=s->mem[(size_t)j*s->sx+i].style;
+			if (s->mem[(size_t)j*s->sx+i].style&YAS_STORAGE)
+				s->scr[(size_t)j*s->sx+i].p=strdup(s->mem[(size_t)j*s->sx+i].p);
 			else
-				strncpy(s->scr[j*s->sx+i].d,s->mem[j*s->sx+i].d,sizeof s->scr[j*s->sx+i].d);
+				strncpy(s->scr[(size_t)j*s->sx+i].d,s->mem[(size_t)j*s->sx+i].d,sizeof s->scr[(size_t)j*s->sx+i].d);
 		}
 	}
 	if (s->cursor)
@@ -734,27 +734,27 @@ static inline void yascreen_putcw(yascreen *s,uint32_t attr,const char *str,int 
 		int i;
 
 		// normal char
-		yascreen_free_memcell(s,s->cursorx+s->cursory*s->sx);
+		yascreen_free_memcell(s,s->cursorx+(size_t)s->cursory*s->sx);
 		if (strlen(str)<PSIZE) {
-			strncpy(s->mem[s->cursorx+s->cursory*s->sx].d,str,sizeof s->mem[s->cursorx+s->cursory*s->sx].d);
-			s->mem[s->cursorx+s->cursory*s->sx].style=attr;
+			strncpy(s->mem[s->cursorx+(size_t)s->cursory*s->sx].d,str,sizeof s->mem[s->cursorx+(size_t)s->cursory*s->sx].d);
+			s->mem[s->cursorx+(size_t)s->cursory*s->sx].style=attr;
 		} else {
 			char *ts=strdup(str);
 
 			if (!ts)
 				return; // nothing more to do
 
-			s->mem[s->cursorx+s->cursory*s->sx].p=ts;
-			s->mem[s->cursorx+s->cursory*s->sx].style=YAS_STORAGE|attr;
+			s->mem[s->cursorx+(size_t)s->cursory*s->sx].p=ts;
+			s->mem[s->cursorx+(size_t)s->cursory*s->sx].style=YAS_STORAGE|attr;
 		}
-		s->mem[s->cursory*s->sx].style|=YAS_TOUCHED;
+		s->mem[(size_t)s->cursory*s->sx].style|=YAS_TOUCHED;
 
 		s->cursorx++;
 		for (i=1;i<width;i++) {
 			if (s->cursorx<s->sx) {
-				yascreen_free_memcell(s,s->cursorx+s->cursory*s->sx);
-				*s->mem[s->cursorx+s->cursory*s->sx].d=0;
-				s->mem[s->cursorx+s->cursory*s->sx].style=attr;
+				yascreen_free_memcell(s,s->cursorx+(size_t)s->cursory*s->sx);
+				*s->mem[s->cursorx+(size_t)s->cursory*s->sx].d=0;
+				s->mem[s->cursorx+(size_t)s->cursory*s->sx].style=attr;
 			}
 			s->cursorx++;
 		}
@@ -764,10 +764,10 @@ static inline void yascreen_putcw(yascreen *s,uint32_t attr,const char *str,int 
 		int x;
 
 		for (x=0;x<s->cursorx+width;x++) { // zap spanned chars
-			yascreen_free_memcell(s,x+s->cursory*s->sx);
-			strncpy(s->mem[x+s->cursory*s->sx].d,"<",sizeof s->mem[x+s->cursory*s->sx].d);
-			s->mem[x+s->cursory*s->sx].style=attr;
-			s->mem[s->cursory*s->sx].style|=YAS_TOUCHED;
+			yascreen_free_memcell(s,x+(size_t)s->cursory*s->sx);
+			strncpy(s->mem[x+(size_t)s->cursory*s->sx].d,"<",sizeof s->mem[x+(size_t)s->cursory*s->sx].d);
+			s->mem[x+(size_t)s->cursory*s->sx].style=attr;
+			s->mem[(size_t)s->cursory*s->sx].style|=YAS_TOUCHED;
 		}
 		s->cursorx+=width;
 		return;
@@ -784,10 +784,10 @@ static inline void yascreen_putcw(yascreen *s,uint32_t attr,const char *str,int 
 
 		s->cursorx--;
 
-		clen=strlen((s->mem[s->cursorx+s->cursory*s->sx].style&YAS_STORAGE)?s->mem[s->cursorx+s->cursory*s->sx].p:s->mem[s->cursorx+s->cursory*s->sx].d);
+		clen=strlen((s->mem[s->cursorx+(size_t)s->cursory*s->sx].style&YAS_STORAGE)?s->mem[s->cursorx+(size_t)s->cursory*s->sx].p:s->mem[s->cursorx+(size_t)s->cursory*s->sx].d);
 		if (clen+strlen(str)<PSIZE) { // new fits, so current should fit too and don't have YAS_STORAGE
-			strncpy(s->mem[s->cursorx+s->cursory*s->sx].d+clen,str,sizeof s->mem[s->cursorx+s->cursory*s->sx].d-clen);
-			s->mem[s->cursorx+s->cursory*s->sx].style=attr; // as a side effect combining chars set attr for main char
+			strncpy(s->mem[s->cursorx+(size_t)s->cursory*s->sx].d+clen,str,sizeof s->mem[s->cursorx+(size_t)s->cursory*s->sx].d-clen);
+			s->mem[s->cursorx+(size_t)s->cursory*s->sx].style=attr; // as a side effect combining chars set attr for main char
 		} else {
 			size_t tslen=clen+strlen(str)+1;
 
@@ -796,14 +796,14 @@ static inline void yascreen_putcw(yascreen *s,uint32_t attr,const char *str,int 
 				s->cursorx++;
 				return; // nothing more we could do
 			}
-			strcpy(ts,(s->mem[s->cursorx+s->cursory*s->sx].style&YAS_STORAGE)?s->mem[s->cursorx+s->cursory*s->sx].p:s->mem[s->cursorx+s->cursory*s->sx].d);
+			strcpy(ts,(s->mem[s->cursorx+(size_t)s->cursory*s->sx].style&YAS_STORAGE)?s->mem[s->cursorx+(size_t)s->cursory*s->sx].p:s->mem[s->cursorx+(size_t)s->cursory*s->sx].d);
 			strcat(ts,str);
-			if (s->mem[s->cursorx+s->cursory*s->sx].style&YAS_STORAGE)
-				free(s->mem[s->cursorx+s->cursory*s->sx].p);
-			s->mem[s->cursorx+s->cursory*s->sx].p=ts;
-			s->mem[s->cursorx+s->cursory*s->sx].style=attr|YAS_STORAGE;
+			if (s->mem[s->cursorx+(size_t)s->cursory*s->sx].style&YAS_STORAGE)
+				free(s->mem[s->cursorx+(size_t)s->cursory*s->sx].p);
+			s->mem[s->cursorx+(size_t)s->cursory*s->sx].p=ts;
+			s->mem[s->cursorx+(size_t)s->cursory*s->sx].style=attr|YAS_STORAGE;
 		}
-		s->mem[s->cursory*s->sx].style|=YAS_TOUCHED;
+		s->mem[(size_t)s->cursory*s->sx].style|=YAS_TOUCHED;
 		s->cursorx++;
 	}
 	if (!width) // noop
@@ -812,10 +812,10 @@ static inline void yascreen_putcw(yascreen *s,uint32_t attr,const char *str,int 
 		int x;
 
 		for (x=s->cursorx;x<s->sx;x++) { // zap spanned chars
-			yascreen_free_memcell(s,x+s->cursory*s->sx);
-			strncpy(s->mem[x+s->cursory*s->sx].d,">",sizeof s->mem[x+s->cursory*s->sx].d);
-			s->mem[x+s->cursory*s->sx].style=attr;
-			s->mem[s->cursory*s->sx].style|=YAS_TOUCHED;
+			yascreen_free_memcell(s,x+(size_t)s->cursory*s->sx);
+			strncpy(s->mem[x+(size_t)s->cursory*s->sx].d,">",sizeof s->mem[x+(size_t)s->cursory*s->sx].d);
+			s->mem[x+(size_t)s->cursory*s->sx].style=attr;
+			s->mem[(size_t)s->cursory*s->sx].style|=YAS_TOUCHED;
 		}
 		s->cursorx+=width;
 		return;
@@ -1226,7 +1226,7 @@ inline void yascreen_dump(yascreen *s) { // {{{
 
 	for (j=0;j<s->sy;j++)
 		for (i=0;i<s->sx;i++)
-			printf("x: %3d y: %3d len: %3zu attr: %08x s: %s\n",i,j,strlen((s->mem[i+s->sx*j].style&YAS_STORAGE)?s->mem[i+s->sx*j].p:s->mem[i+s->sx*j].d),s->mem[i+s->sx*j].style,(s->mem[i+s->sx*j].style&YAS_STORAGE)?s->mem[i+s->sx*j].p:s->mem[i+s->sx*j].d);
+			printf("x: %3d y: %3d len: %3zu attr: %08x s: %s\n",i,j,strlen((s->mem[i+(size_t)s->sx*j].style&YAS_STORAGE)?s->mem[i+(size_t)s->sx*j].p:s->mem[i+(size_t)s->sx*j].d),s->mem[i+(size_t)s->sx*j].style,(s->mem[i+(size_t)s->sx*j].style&YAS_STORAGE)?s->mem[i+(size_t)s->sx*j].p:s->mem[i+(size_t)s->sx*j].d);
 } // }}}
 
 inline void yascreen_redraw(yascreen *s) { // {{{
@@ -1687,13 +1687,13 @@ inline int V(yascreen_peekch,V193)(yascreen *s) {
 } // }}}
 
 inline void yascreen_clear_mem(yascreen *s,uint32_t attr) { // {{{
-	int i;
+	size_t i;
 
 	if (!s)
 		return;
 	attr&=~YAS_STORAGE;
 
-	for (i=0;i<s->sx*s->sy;i++) {
+	for (i=0;i<(size_t)s->sx*s->sy;i++) {
 		if (s->mem[i].style&YAS_STORAGE)
 			free(s->mem[i].p);
 		s->mem[i].style=attr;
