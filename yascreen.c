@@ -1,4 +1,4 @@
-// $Id: yascreen.c,v 2.09 2026/03/14 21:24:23 bbonev Exp $
+// $Id: yascreen.c,v 2.10 2026/03/14 21:39:27 bbonev Exp $
 //
 // Copyright © 2015-2025 Boian Bonev (bbonev@ipacct.com) {{{
 //
@@ -318,7 +318,7 @@ inline void *yascreen_get_hint_p(yascreen *s) { // {{{
 	return s->phint;
 } // }}}
 
-static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 2.09 $\n\n"; // {{{
+static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 2.10 $\n\n"; // {{{
 // }}}
 
 inline const char *yascreen_ver(void) { // {{{
@@ -732,6 +732,8 @@ static inline void yascreen_putcw(yascreen *s,uint32_t attr,const char *str,int 
 				return;
 		}
 	}
+	if (width<0) // non-printable character, skip
+		return;
 	if (s->cursory<0||s->cursory>=s->sy)
 		return;
 	if (width&&s->cursorx>=0&&s->cursorx<s->sx&&s->cursorx+width<=s->sx) {
