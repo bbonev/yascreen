@@ -1,4 +1,4 @@
-// $Id: yascreen_feed.c,v 1.6 2025/01/15 15:57:59 bbonev Exp $
+// $Id: yascreen_feed.c,v 1.7 2026/03/14 20:20:04 bbonev Exp $
 
 // Copyright © 2015-2025 Boian Bonev (bbonev@ipacct.com) {{{
 //
@@ -377,7 +377,7 @@ inline void V(yascreen_feed,V193)(yascreen *s,unsigned char c) {
 			}
 			break;
 		case ST_ESC_SQ_D:
-			if (s->ansipos>=sizeof s->ansibuf) { // buffer overrun, ignore the sequence
+			if (s->ansipos>=sizeof s->ansibuf-1) { // buffer overrun, ignore the sequence (keep 1 byte for NUL terminator)
 				s->state=ST_NORM;
 				break;
 			}
@@ -568,7 +568,7 @@ inline void V(yascreen_feed,V193)(yascreen *s,unsigned char c) {
 			s->state=ST_NORM;
 			break;
 		case ST_ESC_ESC:
-			if (s->ansipos>=sizeof s->ansibuf) { // buffer overrun, ignore the sequence
+			if (s->ansipos>=sizeof s->ansibuf-1) { // buffer overrun, ignore the sequence (keep 1 byte for NUL terminator)
 				s->state=ST_NORM;
 				break;
 			}

@@ -1,4 +1,4 @@
-// $Id: yascreen.c,v 2.06 2025/01/15 15:57:59 bbonev Exp $
+// $Id: yascreen.c,v 2.07 2026/03/14 20:20:04 bbonev Exp $
 //
 // Copyright © 2015-2025 Boian Bonev (bbonev@ipacct.com) {{{
 //
@@ -137,7 +137,7 @@ struct _yascreen {
 	int keysize; // saved key storage size
 	int keycnt; // saved key count
 	int *keys; // saved key array
-	unsigned char ansibuf[20]; // buffer for escape sequence parsing
+	unsigned char ansibuf[21]; // buffer for escape sequence parsing
 	unsigned char ansipos; // next byte will go in this pos
 	unsigned char sosnbuf[20]; // buffer for telnet SOSN options parsing
 	unsigned char sosnpos; // next byte will go in this pos
@@ -318,7 +318,7 @@ inline void *yascreen_get_hint_p(yascreen *s) { // {{{
 	return s->phint;
 } // }}}
 
-static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 2.06 $\n\n"; // {{{
+static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 2.07 $\n\n"; // {{{
 // }}}
 
 inline const char *yascreen_ver(void) { // {{{
