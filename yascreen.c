@@ -1,4 +1,4 @@
-// $Id: yascreen.c,v 2.08 2026/03/14 21:05:48 bbonev Exp $
+// $Id: yascreen.c,v 2.09 2026/03/14 21:24:23 bbonev Exp $
 //
 // Copyright © 2015-2025 Boian Bonev (bbonev@ipacct.com) {{{
 //
@@ -318,7 +318,7 @@ inline void *yascreen_get_hint_p(yascreen *s) { // {{{
 	return s->phint;
 } // }}}
 
-static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 2.08 $\n\n"; // {{{
+static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 2.09 $\n\n"; // {{{
 // }}}
 
 inline const char *yascreen_ver(void) { // {{{
@@ -694,9 +694,13 @@ static inline int yascreen_update_range(yascreen *s,int y1,int y2) { // {{{
 			if (s->scr[(size_t)j*s->sx+i].style&YAS_STORAGE)
 				free(s->scr[(size_t)j*s->sx+i].p);
 			s->scr[(size_t)j*s->sx+i].style=s->mem[(size_t)j*s->sx+i].style;
-			if (s->mem[(size_t)j*s->sx+i].style&YAS_STORAGE)
+			if (s->mem[(size_t)j*s->sx+i].style&YAS_STORAGE) {
 				s->scr[(size_t)j*s->sx+i].p=strdup(s->mem[(size_t)j*s->sx+i].p);
-			else
+				if (!s->scr[(size_t)j*s->sx+i].p) { // make it empty in case of allocation failure
+					s->scr[(size_t)j*s->sx+i].style&=~YAS_STORAGE;
+					strcpy(s->scr[(size_t)j*s->sx+i].d," ");
+				}
+			} else
 				strncpy(s->scr[(size_t)j*s->sx+i].d,s->mem[(size_t)j*s->sx+i].d,sizeof s->scr[(size_t)j*s->sx+i].d);
 		}
 	}
