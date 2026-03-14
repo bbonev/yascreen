@@ -1,6 +1,6 @@
-version=4
+Version: 5
 
-opts="searchmode=plain, \
-	pgpsigurlmangle=s/releases\/download\/v([0-9.]+)\/yascreen-([0-9.]+)\.tar\.xz/releases\/download\/v$1\/yascreen-$1\.tar\.xz\.asc/" \
-	https://api.github.com/repos/bbonev/yascreen/releases \
-	https://github.com/bbonev/yascreen/releases/download/v\d[\.\d]*/yascreen-@ANY_VERSION@.tar.xz
+Source: https://api.github.com/repos/bbonev/yascreen/releases
+Matching-Pattern: https://github.com/bbonev/yascreen/releases/download/v\d[\.\d]*/yascreen-@ANY_VERSION@.tar.xz
+Pgpsigurlmangle: s/releases\/download\/v([0-9.]+)\/yascreen-([0-9.]+)\.tar\.xz/releases\/download\/v$1\/yascreen-$1\.tar\.xz\.asc/
+Searchmode: plain
