@@ -1,4 +1,4 @@
-// $Id: yascreen.c,v 2.11 2026/03/14 22:06:37 bbonev Exp $
+// $Id: yascreen.c,v 2.12 2026/07/20 22:47:17 bbonev Exp $
 //
 // Copyright © 2015-2026 Boian Bonev (bbonev@ipacct.com) {{{
 //
@@ -95,7 +95,9 @@ typedef enum { // ansi sequence state machine
 	ST_ESC, // escape sequence
 	ST_ESC_SQ, // escape [ sequence
 	ST_ESC_SQ_D, // escape [ digit sequence
+	ST_ESC_SQ_SQ, // escape [ [ sequence (linux console function keys)
 	ST_ESC_O, // escape O sequence
+	ST_ESC_O_D, // escape O digit sequence (old xterm modified F1-F4 and arrows)
 	ST_ESC_ESC, // escape escape sequence
 } yas_k_state;
 
@@ -318,7 +320,7 @@ inline void *yascreen_get_hint_p(yascreen *s) { // {{{
 	return s->phint;
 } // }}}
 
-static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 2.11 $\n\n"; // {{{
+static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 2.12 $\n\n"; // {{{
 // }}}
 
 inline const char *yascreen_ver(void) { // {{{
@@ -1896,7 +1898,7 @@ inline wchar_t yascreen_peekwch(yascreen *s) { // {{{
 #define YAS_K_A_9 YAS_K_ALT('9')
 #define YAS_K_A_0 YAS_K_ALT('0')
 #define YAS_K_A_MINUS YAS_K_ALT('-')
-#define YAS_K_A_EQ YAS_K_ALT(' ')
+#define YAS_K_A_EQ YAS_K_ALT('=')
 #define YAS_K_A_BSP YAS_K_ALT(0x7f)
 #define YAS_K_A_TLD YAS_K_ALT('~')
 #define YAS_K_A_EXCL YAS_K_ALT('!')
