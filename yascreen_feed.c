@@ -1,4 +1,4 @@
-// $Id: yascreen_feed.c,v 1.10 2026/07/20 22:48:42 bbonev Exp $
+// $Id: yascreen_feed.c,v 1.11 2026/07/21 06:31:18 bbonev Exp $
 
 // Copyright © 2015-2026 Boian Bonev (bbonev@ipacct.com) {{{
 //
@@ -25,17 +25,20 @@ inline void V(yascreen_feed,V193)(yascreen *s,unsigned char c) {
 			default:
 			case TELNET_NOOP: // byte is eaten w/o valid input
 				return;
-			case TELNET_SIZE: // notify about screen size change
+			case TELNET_SIZE: // notify about screen size change w/o valid size data
 				yascreen_pushch(s,YAS_TELNET_SIZE);
+				return;
+			case TELNET_SIZE_NAWS: // new valid screen size is received via NAWS
+				yascreen_pushch(s,YAS_SCREEN_SIZE);
 				return;
 		}
 	}
 
 	switch (s->state) {
 		case ST_ENTER:
-			if (c=='\n'||c==0) // ignore LF or NUL after CR
-				break;
 			s->state=ST_NORM;
+			if (c=='\n'||c==0) // ignore a single LF or NUL after CR
+				break;
 			// fall through
 		case ST_NORM:
 			if (c==YAS_K_ESC) { // handle esc sequences
@@ -394,10 +397,22 @@ inline void V(yascreen_feed,V193)(yascreen *s,unsigned char c) {
 					s->state=ST_ESC_SQ_D;
 					s->ansibuf[s->ansipos++]=c;
 					break;
-				default: // ignore unknown sequence
-					s->state=ST_NORM;
+				case 'M': // x10 mouse report - eat the 3 byte payload so it does not leak as keypresses
+					s->state=ST_ESC_SQ_M;
+					break;
+				default:
+					if (c>=0x20&&c<=0x3f) { // parameter/intermediate byte of an unsupported sequence - collect and discard
+						s->state=ST_ESC_SQ_D;
+						s->ansibuf[s->ansipos++]=c;
+					} else // ignore unknown sequence
+						s->state=ST_NORM;
 					break;
 			}
+			break;
+		case ST_ESC_SQ_M:
+			s->ansipos++; // count the payload bytes, values are not used
+			if (s->ansipos>=5) // \e[M plus 3 payload bytes
+				s->state=ST_NORM;
 			break;
 		case ST_ESC_SQ_D:
 			if (s->ansipos>=sizeof s->ansibuf-1) { // buffer overrun, ignore the sequence (keep 1 byte for NUL terminator)
@@ -610,10 +625,9 @@ inline void V(yascreen_feed,V193)(yascreen *s,unsigned char c) {
 							yascreen_pushch(s,YAS_K_A_F2);
 						break;
 					case 'R': { // \e[n;mR - cursor position report, used for screen size detection
-						int sx,sy;
+						int sx=0,sy=0;
 
-						sscanf((char *)s->ansibuf+2,"%d;%dR",&sy,&sx);
-						if (sx>10&&sy>3&&sx<=999&&sy<=999) { // ignore non-sane values
+						if (2==sscanf((char *)s->ansibuf+2,"%d;%dR",&sy,&sx)&&sx>10&&sy>3&&sx<=999&&sy<=999) { // ignore non-sane values
 							s->scrx=sx;
 							s->scry=sy;
 							s->haveansi=1;
@@ -898,33 +912,49 @@ inline void V(yascreen_feed,V193)(yascreen *s,unsigned char c) {
 				break;
 			}
 			s->ansibuf[s->ansipos++]=c;
-			if (c>=0x40&&c<=0x7e&&c!=0x5b) { // final char
+			if (c>=0x40&&c<=0x7e&&c!=0x5b&&!(c==0x4f&&s->ansipos==3)) { // final char; 'O' right after \e\e starts an alt-SS3 sequence
 				s->state=ST_NORM;
 				s->ansibuf[s->ansipos]=0;
 				switch (c) {
 					case 'A':
-						if (s->ansipos==4&&s->ansibuf[2]=='[') // alt-up - \e\e[A
+						if (s->ansipos==4&&(s->ansibuf[2]=='['||s->ansibuf[2]=='O')) // alt-up - \e\e[A \e\eOA
 							yascreen_pushch(s,YAS_K_A_UP);
 						break;
 					case 'B':
-						if (s->ansipos==4&&s->ansibuf[2]=='[') // alt-down - \e\e[B
+						if (s->ansipos==4&&(s->ansibuf[2]=='['||s->ansibuf[2]=='O')) // alt-down - \e\e[B \e\eOB
 							yascreen_pushch(s,YAS_K_A_DOWN);
 						break;
 					case 'C':
-						if (s->ansipos==4&&s->ansibuf[2]=='[') // alt-right - \e\e[C
+						if (s->ansipos==4&&(s->ansibuf[2]=='['||s->ansibuf[2]=='O')) // alt-right - \e\e[C \e\eOC
 							yascreen_pushch(s,YAS_K_A_RIGHT);
 						break;
 					case 'D':
-						if (s->ansipos==4&&s->ansibuf[2]=='[') // alt-left - \e\e[D
+						if (s->ansipos==4&&(s->ansibuf[2]=='['||s->ansibuf[2]=='O')) // alt-left - \e\e[D \e\eOD
 							yascreen_pushch(s,YAS_K_A_LEFT);
 						break;
 					case 'H':
-						if (s->ansipos==4&&s->ansibuf[2]=='[') // alt-home - \e\e[H
+						if (s->ansipos==4&&(s->ansibuf[2]=='['||s->ansibuf[2]=='O')) // alt-home - \e\e[H \e\eOH
 							yascreen_pushch(s,YAS_K_A_HOME);
 						break;
 					case 'F':
-						if (s->ansipos==4&&s->ansibuf[2]=='[') // alt-end - \e\e[F
+						if (s->ansipos==4&&(s->ansibuf[2]=='['||s->ansibuf[2]=='O')) // alt-end - \e\e[F \e\eOF
 							yascreen_pushch(s,YAS_K_A_END);
+						break;
+					case 'P':
+						if (s->ansipos==4&&s->ansibuf[2]=='O') // alt-F1 - \e\eOP
+							yascreen_pushch(s,YAS_K_A_F1);
+						break;
+					case 'Q':
+						if (s->ansipos==4&&s->ansibuf[2]=='O') // alt-F2 - \e\eOQ
+							yascreen_pushch(s,YAS_K_A_F2);
+						break;
+					case 'R':
+						if (s->ansipos==4&&s->ansibuf[2]=='O') // alt-F3 - \e\eOR
+							yascreen_pushch(s,YAS_K_A_F3);
+						break;
+					case 'S':
+						if (s->ansipos==4&&s->ansibuf[2]=='O') // alt-F4 - \e\eOS
+							yascreen_pushch(s,YAS_K_A_F4);
 						break;
 					case '~':
 						if (s->ansipos==5&&s->ansibuf[2]=='['&&(s->ansibuf[3]=='1'||s->ansibuf[3]=='7')) // alt-home - \e\e[1~ \e\e[7~
