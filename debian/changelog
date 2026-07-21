@@ -1,6 +1,14 @@
+yascreen (2.13-1) unstable; urgency=medium
+
+  * Update to new upstream release of 2.13
+  * Bump standards to 4.7.4, no changes
+  * Switch to debhelper 14
+
+ -- Boian Bonev <bbonev@ipacct.com>  Tue, 21 Jul 2026 06:49:02 +0000
+
 yascreen (2.11-1) unstable; urgency=medium
 
-  * Update to new upstream release of 2.06
+  * Update to new upstream release of 2.11
   * Update year in copyright
   * Bump standards to 4.7.3, no changes
   * Change d/watch to version 5

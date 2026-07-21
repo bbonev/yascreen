@@ -1,6 +1,6 @@
 Name:           yascreen
-Version:        2.11
-Release:        2%{?dist}
+Version:        2.13
+Release:        1%{?dist}
 Summary:        Yet Another Screen Library (lib(n)curses alternative)
 
 License:        LGPL-3.0-only
@@ -74,6 +74,9 @@ rm -f $RPM_BUILD_ROOT%{_libdir}/libyascreen.a
 %{_includedir}/yascreen.h
 
 %changelog
+* Tue Jul 21 2026 Boian Bonev <bbonev@ipacct.com> - 2.13-1
+- Update to latest ver 2.13
+
 * Fri Jul 17 2026 Fedora Release Engineering <releng@fedoraproject.org> - 2.11-2
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_45_Mass_Rebuild
 
