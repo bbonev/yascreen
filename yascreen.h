@@ -1,4 +1,4 @@
-// $Id: yascreen.h,v 1.54 2026/07/20 22:46:32 bbonev Exp $
+// $Id: yascreen.h,v 1.55 2026/07/21 06:25:46 bbonev Exp $
 //
 // Copyright © 2015-2026 Boian Bonev (bbonev@ipacct.com) {{{
 //
@@ -383,136 +383,136 @@ typedef struct _yascreen yascreen;
 
 // allocate and initialize screen data
 // output defaults to stdout
-inline yascreen *yascreen_init(int sx,int sy);
+yascreen *yascreen_init(int sx,int sy);
 // get library version as static string
-inline const char *yascreen_ver(void);
+const char *yascreen_ver(void);
 // change output; if output is NULL, default is to stdout
-inline int yascreen_setout(yascreen *s,ssize_t (*out)(yascreen *s,const void *data,size_t len));
+int yascreen_setout(yascreen *s,ssize_t (*out)(yascreen *s,const void *data,size_t len));
 // enable/disable handling of unicode input (enabled by default)
-inline void yascreen_set_unicode(yascreen *s,int on);
+void yascreen_set_unicode(yascreen *s,int on);
 // enable/disable handling of telnet protocol (disabled by default)
-inline void yascreen_set_telnet(yascreen *s,int on);
+void yascreen_set_telnet(yascreen *s,int on);
 // init remote telnet client
-inline void yascreen_init_telnet(yascreen *s);
+void yascreen_init_telnet(yascreen *s);
 // resize screen; should redraw afterwards
 // since allocation is involved, this may fail and return -1
-inline int yascreen_resize(yascreen *s,int sx,int sy);
+int yascreen_resize(yascreen *s,int sx,int sy);
 // free screen data
-inline void yascreen_free(yascreen *s);
+void yascreen_free(yascreen *s);
 
 // save current terminal state on top of state stack
-inline void yascreen_term_save(yascreen *s);
+void yascreen_term_save(yascreen *s);
 // restore previously saved terminal state from top of state stack
-inline void yascreen_term_restore(yascreen *s);
+void yascreen_term_restore(yascreen *s);
 // push current terminal state to state stack
-inline void yascreen_term_push(yascreen *s);
+void yascreen_term_push(yascreen *s);
 // pop and restore previously saved terminal state from state stack
-inline void yascreen_term_pop(yascreen *s);
+void yascreen_term_pop(yascreen *s);
 // set terminal for proper screen operation
-inline void yascreen_term_set(yascreen *s,int mode);
+void yascreen_term_set(yascreen *s,int mode);
 
 // print at position, if data exceeds buffer, then it gets truncated
-inline int yascreen_printxy(yascreen *s,int x,int y,uint32_t attr,const char *format,...) __attribute__((format(printf,5,6)));
-inline int yascreen_putsxy(yascreen *s,int x,int y,uint32_t attr,const char *str);
+int yascreen_printxy(yascreen *s,int x,int y,uint32_t attr,const char *format,...) __attribute__((format(printf,5,6)));
+int yascreen_putsxy(yascreen *s,int x,int y,uint32_t attr,const char *str);
 // print at position, if data exceeds buffer, then it gets truncated; and update immediately
-inline int yascreen_printxyu(yascreen *s,int x,int y,uint32_t attr,const char *format,...) __attribute__((format(printf,5,6)));
-inline int yascreen_putsxyu(yascreen *s,int x,int y,uint32_t attr,const char *str);
+int yascreen_printxyu(yascreen *s,int x,int y,uint32_t attr,const char *format,...) __attribute__((format(printf,5,6)));
+int yascreen_putsxyu(yascreen *s,int x,int y,uint32_t attr,const char *str);
 
 // sync memory state to screen
 // since allocation is involved, this may fail and return -1
-inline int yascreen_update(yascreen *s);
+int yascreen_update(yascreen *s);
 // set next update to be a full redraw
-inline void yascreen_redraw(yascreen *s);
+void yascreen_redraw(yascreen *s);
 // clear memory buffer
-inline void yascreen_clear_mem(yascreen *s,uint32_t attr);
+void yascreen_clear_mem(yascreen *s,uint32_t attr);
 
 // calls suitable for line mode and init of fullscreen mode
 
 // hide or show cusror; screen is updated immediately
-inline void yascreen_cursor(yascreen *s,int on);
+void yascreen_cursor(yascreen *s,int on);
 // set cursor position; screen is updated immediately
-inline void yascreen_cursor_xy(yascreen *s,int x,int y);
+void yascreen_cursor_xy(yascreen *s,int x,int y);
 // switch between regular and alternative buffer; screen is updated immediately
-inline void yascreen_altbuf(yascreen *s,int on);
+void yascreen_altbuf(yascreen *s,int on);
 // clear real screen, no change to memory buffers
-inline void yascreen_clear(yascreen *s);
+void yascreen_clear(yascreen *s);
 // clear current line, no change to memory buffers
-inline void yascreen_clearln(yascreen *s);
+void yascreen_clearln(yascreen *s);
 // apply difference between two attrs
-inline void yascreen_update_attr(yascreen *s,uint32_t oattr,uint32_t nattr);
+void yascreen_update_attr(yascreen *s,uint32_t oattr,uint32_t nattr);
 // reset all attrs and set specific one
 #define yascreen_set_attr(s,attr) yascreen_update_attr(s,0xffffffff,attr)
 // print in line mode
-inline int yascreen_print(yascreen *s,const char *format,...) __attribute__((format(printf,2,3)));
-inline int yascreen_write(yascreen *s,const char *str,int len);
-inline int yascreen_puts(yascreen *s,const char *str);
+int yascreen_print(yascreen *s,const char *format,...) __attribute__((format(printf,2,3)));
+int yascreen_write(yascreen *s,const char *str,int len);
+int yascreen_puts(yascreen *s,const char *str);
 // set if the above three calls should flush
-inline void yascreen_line_flush(yascreen *s,int on);
+void yascreen_line_flush(yascreen *s,int on);
 // returns an escape sequence to clear line
-inline const char *yascreen_clearln_s(yascreen *s);
+const char *yascreen_clearln_s(yascreen *s);
 
 // get current x size
-inline int yascreen_sx(yascreen *s);
+int yascreen_sx(yascreen *s);
 // get current y size
-inline int yascreen_sy(yascreen *s);
+int yascreen_sy(yascreen *s);
 // get current x
-inline int yascreen_x(yascreen *s);
+int yascreen_x(yascreen *s);
 // get current y
-inline int yascreen_y(yascreen *s);
+int yascreen_y(yascreen *s);
 
 // keyboard input
 // set timeout in milliseconds for single ESC key press
-inline void yascreen_esc_to(yascreen *s,int timeout);
+void yascreen_esc_to(yascreen *s,int timeout);
 // in case of external event loop, this call will check for single ESC key
 // should be called regularly enough so that the above specified timeout is not extended too much
 // if not called often enough then single ESC will be yielded after longer timeout
 // if not called at all then single ESC will be yielded with next key press
-inline void yascreen_ckto(yascreen *s);
+void yascreen_ckto(yascreen *s);
 // single ESC key and a timeout afterwards is quite the rare event
 // help the application to optimize its event loop by not constantly polling yascreen_ckto
 // yascreen_willto tells if there is a pending timeout and when
 // returns 0 if there is no pending timeout or the remaining time in milliseconds
-inline uint64_t yascreen_willto(yascreen *s);
+uint64_t yascreen_willto(yascreen *s);
 // wait for a key, return ASCII or extended keycode, wait no more than timeout in milliseconds
-inline int yascreen_getch_to(yascreen *s,int timeout);
+int yascreen_getch_to(yascreen *s,int timeout);
 // zero timeout=wait forever
 #define yascreen_getch(s) yascreen_getch_to(s,0)
 // negative timeout=do not wait
 #define yascreen_getch_nowait(s) yascreen_getch_to(s,-1)
 // put back key value in key buffer
-inline void yascreen_ungetch(yascreen *s,int key);
+void yascreen_ungetch(yascreen *s,int key);
 // push key value at end of key buffer
-inline void yascreen_pushch(yascreen *s,int key);
+void yascreen_pushch(yascreen *s,int key);
 // feed key sequence state machine with byte stream
 // this is useful to implement external event loop and
-// read key codes by yascreen_getch_nowait until it returns -1
-inline void yascreen_feed(yascreen *s,unsigned char c);
+// read key codes by yascreen_getch_nowait until it returns YAS_K_NONE
+void yascreen_feed(yascreen *s,unsigned char c);
 // peek for key without removing it from input queue
-inline int yascreen_peekch(yascreen *s);
+int yascreen_peekch(yascreen *s);
 // get last reported screen size; set both to 0 if there is none
 // this will yield valid result after YAS_SCREEN_SIZE is returned as keypress
-inline void yascreen_getsize(yascreen *s,int *sx,int *sy);
+void yascreen_getsize(yascreen *s,int *sx,int *sy);
 // request terminal to report its size
-inline void yascreen_reqsize(yascreen *s);
+void yascreen_reqsize(yascreen *s);
 
 // wchar_t input
 // wait for a key, return wchar_t or extended keycode in 0xf0000-0xffffd range
 // wait no more than timeout in milliseconds
-inline wchar_t yascreen_getwch_to(yascreen *s,int timeout);
+wchar_t yascreen_getwch_to(yascreen *s,int timeout);
 // zero timeout=wait forever
 #define yascreen_getwch(s) yascreen_getwch_to(s,0)
 // negative timeout=do not wait
 #define yascreen_getwch_nowait(s) yascreen_getwch_to(s,-1)
 // put back key value in key buffer
-inline void yascreen_ungetwch(yascreen *s,wchar_t key);
+void yascreen_ungetwch(yascreen *s,wchar_t key);
 // peek for key without removing it from input queue
-inline wchar_t yascreen_peekwch(yascreen *s);
+wchar_t yascreen_peekwch(yascreen *s);
 
 // hints api
-inline void yascreen_set_hint_i(yascreen *s,int hint);
-inline int yascreen_get_hint_i(yascreen *s);
-inline void yascreen_set_hint_p(yascreen *s,void *hint);
-inline void *yascreen_get_hint_p(yascreen *s);
+void yascreen_set_hint_i(yascreen *s,int hint);
+int yascreen_get_hint_i(yascreen *s);
+void yascreen_set_hint_p(yascreen *s,void *hint);
+void *yascreen_get_hint_p(yascreen *s);
 
 #ifdef __cplusplus
 }
