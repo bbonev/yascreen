@@ -1,4 +1,4 @@
-// $Id: yascreen_feed.c,v 1.11 2026/07/21 06:31:18 bbonev Exp $
+// $Id: yascreen_feed.c,v 1.12 2026/07/21 08:17:20 bbonev Exp $
 
 // Copyright © 2015-2026 Boian Bonev (bbonev@ipacct.com) {{{
 //
@@ -36,9 +36,9 @@ inline void V(yascreen_feed,V193)(yascreen *s,unsigned char c) {
 
 	switch (s->state) {
 		case ST_ENTER:
-			s->state=ST_NORM;
-			if (c=='\n'||c==0) // ignore a single LF or NUL after CR
+			if ((c=='\n'||c==0)&&s->escts+YAS_ENTER_TO>=mytime()) // ignore LF/NUL combinations arriving shortly after CR
 				break;
+			s->state=ST_NORM;
 			// fall through
 		case ST_NORM:
 			if (c==YAS_K_ESC) { // handle esc sequences
@@ -47,8 +47,10 @@ inline void V(yascreen_feed,V193)(yascreen *s,unsigned char c) {
 				s->ansibuf[0]=c;
 				s->state=ST_ESC;
 			} else { // handle standard keys
-				if (c=='\r') // shift state to ST_ENTER to eat optional LF/NUL after CR
+				if (c=='\r') { // shift state to ST_ENTER to eat an optional LF/NUL combination after CR
+					s->escts=mytime();
 					s->state=ST_ENTER;
+				}
 				if (!s->isunicode) { // do not process unicode sequences, push the byte as-is
 					yascreen_pushch(s,c);
 					break;
