@@ -1,4 +1,4 @@
-// $Id: yascreen.c,v 2.12 2026/07/20 22:47:17 bbonev Exp $
+// $Id: yascreen.c,v 2.13 2026/07/21 06:43:36 bbonev Exp $
 //
 // Copyright © 2015-2026 Boian Bonev (bbonev@ipacct.com) {{{
 //
@@ -19,6 +19,7 @@
 #endif
 
 #include <time.h>
+#include <errno.h>
 #include <wchar.h>
 #include <stdio.h>
 #include <stdarg.h>
@@ -73,7 +74,8 @@
 #define TELNET_DONT 254 // 0xfe // dont
 #define TELNET_IAC 255 // 0xff // telnet protocol escape code (IAC)
 #define TELNET_NOOP 0x100 // telnet protocol handler have eaten a byte w/o yielding any result
-#define TELNET_SIZE 0x101 // telnet protocol handler have detected screen size change notification
+#define TELNET_SIZE 0x101 // telnet protocol handler have detected screen size change notification w/o valid size data
+#define TELNET_SIZE_NAWS 0x102 // telnet protocol handler have received a new valid screen size via NAWS
 
 #define TELNET_NAWS 31 // 0x1f // negotiate about window size
 
@@ -96,6 +98,7 @@ typedef enum { // ansi sequence state machine
 	ST_ESC_SQ, // escape [ sequence
 	ST_ESC_SQ_D, // escape [ digit sequence
 	ST_ESC_SQ_SQ, // escape [ [ sequence (linux console function keys)
+	ST_ESC_SQ_M, // escape [ M x10 mouse report - eat the 3 byte payload
 	ST_ESC_O, // escape O sequence
 	ST_ESC_O_D, // escape O digit sequence (old xterm modified F1-F4 and arrows)
 	ST_ESC_ESC, // escape escape sequence
@@ -194,7 +197,7 @@ static inline int64_t mytime() { // {{{
 	int64_t res;
 
 	clock_gettime(CLOCK_MONOTONIC,&ts);
-	res=ts.tv_sec*1000;
+	res=(int64_t)ts.tv_sec*1000; // force the multiplication in 64 bit, time_t may be 32 bit
 	res+=ts.tv_nsec/1000000;
 	return res;
 } // }}}
@@ -202,6 +205,7 @@ static inline int64_t mytime() { // {{{
 static inline ssize_t out(yascreen *s,const void *vbuf,size_t len) { // {{{
 	const uint8_t *buf=vbuf;
 	size_t olen=len;
+	ssize_t wr;
 
 repeat:
 	if (len) {
@@ -210,15 +214,16 @@ repeat:
 			s->outp+=len;
 		} else {
 			size_t brem=sizeof s->outb-s->outp;
-			ssize_t wr;
 
 			memcpy(s->outb+s->outp,buf,brem);
 			s->outp+=brem;
 			buf+=brem;
 			len-=brem;
-			wr=write(STDOUT_FILENO,s->outb,s->outp);
+			do
+				wr=write(STDOUT_FILENO,s->outb,s->outp);
+			while (wr==-1&&errno==EINTR); // retry after signal interruption
 			if (wr<=0) // error
-				return wr;
+				return -1;
 			if (wr==s->outp) {
 				s->outp-=wr;
 				goto repeat;
@@ -230,41 +235,75 @@ repeat:
 		}
 	}
 	if (!olen&&s->outp) { // flush is requested
-		ssize_t wr=write(STDOUT_FILENO,s->outb,s->outp);
-
-		if (wr==s->outp)
-			s->outp=0;
-		else
-			if (wr>0) {
-				memmove(s->outb,s->outb+wr,s->outp-wr);
-				s->outp-=wr;
-			}
+		while (s->outp) {
+			do
+				wr=write(STDOUT_FILENO,s->outb,s->outp);
+			while (wr==-1&&errno==EINTR); // retry after signal interruption
+			if (wr<=0) // error
+				return -1;
+			memmove(s->outb,s->outb+wr,s->outp-wr);
+			s->outp-=wr;
+		}
 	}
 	return olen;
 } // }}}
 
-static inline void outs(yascreen *s,const char *str) { // {{{
+static inline void outsl(yascreen *s,const char *str,size_t len) { // {{{
 	ssize_t (*o)(yascreen *s,const void *buf,size_t len);
-	size_t len;
 
 	if (!s)
 		return;
 	if (!str)
 		return;
 
-	len=strlen(str);
 	o=s->outcb?s->outcb:out;
 	if (!len) // explicit flush
 		o(s,"",0);
 	while (len) {
 		ssize_t r=o(s,str,len);
 
-		if (r>=0) {
+		if (r>0) {
 			len-=r;
 			str+=r;
-		} else
+		} else // error or no progress; do not spin forever
 			break;
 	}
+} // }}}
+
+static inline void outse(yascreen *s,const char *str,size_t len) { // {{{
+	size_t i,j=0;
+
+	if (!s)
+		return;
+	if (!str)
+		return;
+
+	if (!s->istelnet) {
+		outsl(s,str,len);
+		return;
+	}
+	if (!len) { // pass through explicit flush
+		outsl(s,str,0);
+		return;
+	}
+	for (i=0;i<len;i++) // escape IAC bytes in the outgoing telnet stream
+		if ((unsigned char)str[i]==0xff) {
+			if (i>j)
+				outsl(s,str+j,i-j);
+			outsl(s,"\xff\xff",2);
+			j=i+1;
+		}
+	if (len>j)
+		outsl(s,str+j,len-j);
+} // }}}
+
+static inline void outs(yascreen *s,const char *str) { // {{{
+	if (!s)
+		return;
+	if (!str)
+		return;
+
+	outse(s,str,strlen(str));
 } // }}}
 
 static inline int yascreen_vasprintf(yascreen *s,char **ps,const char *format,va_list ap) { // {{{
@@ -276,10 +315,10 @@ static inline int yascreen_vasprintf(yascreen *s,char **ps,const char *format,va
 	return vasprintf(ps,format,ap);
 } // }}}
 
-static inline void outf(yascreen *s,const char *format,...) __attribute__((format(printf,2,3))); // {{{
+static inline int outf(yascreen *s,const char *format,...) __attribute__((format(printf,2,3))); // {{{
 // }}}
 
-static inline void outf(yascreen *s,const char *format,...) { // {{{
+static inline int outf(yascreen *s,const char *format,...) { // {{{
 	va_list ap;
 	char *ns;
 	int size;
@@ -289,11 +328,12 @@ static inline void outf(yascreen *s,const char *format,...) { // {{{
 	va_end(ap);
 
 	if (size==-1) // some error, nothing more to do
-		return;
+		return -1;
 
 	outs(s,ns);
 
 	free(ns);
+	return 0;
 } // }}}
 
 inline void yascreen_set_hint_i(yascreen *s,int hint) { // {{{
@@ -320,10 +360,26 @@ inline void *yascreen_get_hint_p(yascreen *s) { // {{{
 	return s->phint;
 } // }}}
 
-static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 2.12 $\n\n"; // {{{
+static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 2.13 $\n\n"; // {{{
 // }}}
 
+static inline void yascreen_ver_init(void) { // {{{
+	if (myver[0]==0) { // reformat the static version string
+		char *rev=strstr(myver+1,"$Revision: ");
+		int vermaj,vermin;
+
+		if (rev&&2==sscanf(rev+strlen("$Revision: "),"%d.%d",&vermaj,&vermin)) {
+			vermaj+=vermin/100;
+			vermin=vermin%100;
+			memmove(myver,myver+1,strlen(myver+1)+1);
+			snprintf(rev-1,sizeof myver-(rev-1-myver),"%d.%02d\n\n",vermaj,vermin);
+		} else
+			memmove(myver,myver+1,strlen(myver+1)+1); // no revision tag, expose the string as-is
+	}
+} // }}}
+
 inline const char *yascreen_ver(void) { // {{{
+	yascreen_ver_init();
 	return myver;
 } // }}}
 
@@ -395,18 +451,7 @@ inline yascreen *yascreen_init(int sx,int sy) { // {{{
 	yascreen *s;
 	size_t i;
 
-	if (myver[0]==0) { // reformat the static version string
-		char *rev=strstr(myver+1,"$Revision: ");
-		int vermaj,vermin;
-
-		if (rev) {
-			sscanf(rev+strlen("$Revision: "),"%d.%d",&vermaj,&vermin);
-			vermaj+=vermin/100;
-			vermin=vermin%100;
-			memmove(myver,myver+1,strlen(myver+1)+1);
-			snprintf(rev-1,sizeof myver-(rev-1-myver),"%d.%02d\n\n",vermaj,vermin);
-		}
-	}
+	yascreen_ver_init();
 
 	if (sx<0||sy<0)
 		return NULL;
@@ -500,6 +545,7 @@ inline void yascreen_set_telnet(yascreen *s,int on) { // {{{
 	if (!s)
 		return;
 	s->istelnet=!!on;
+	s->tstate=T_NORM; // reset the telnet state machine to avoid a stuck byte-eating state across mode changes
 } // }}}
 
 inline void yascreen_set_unicode(yascreen *s,int on) { // {{{
@@ -513,29 +559,30 @@ inline void yascreen_init_telnet(yascreen *s) { // {{{
 	if (!s)
 		return;
 
-	if (s->istelnet)
-		outs(s,
+	if (s->istelnet) // use the raw writer, protocol negotiation must not get IAC escaping
+		outsl(s,
 			"\xff\xfb\x03" // will(251) suppress go ahead
 			"\xff\xfb\x01" // will(251) echo
 			"\xff\xfd\x03" // do(253) suppress go ahead
 			"\xff\xfd\x01" // do(253) echo
 			"\xff\xfb\x1f" // will(251) negotiate terminal size
 			"\xff\xfd\x1f" // do(253) negotiate terminal size
-		);
+		,18);
 	else
-		outs(s,
+		outsl(s,
 			"\xff\xfc\x03" // wont(251) suppress go ahead
 			"\xff\xfc\x01" // wont(251) echo
 			"\xff\xfe\x03" // dont(253) suppress go ahead
 			"\xff\xfe\x01" // dont(253) echo
 			"\xff\xfc\x1f" // wont(251) negotiate terminal size
 			"\xff\xfe\x1f" // dont(253) negotiate terminal size
-		);
+		,18);
 } // }}}
 
 inline int yascreen_resize(yascreen *s,int sx,int sy) { // {{{
 	cell *mem,*scr;
 	size_t i;
+	int grow;
 
 	if (!s)
 		return -1;
@@ -551,12 +598,11 @@ inline int yascreen_resize(yascreen *s,int sx,int sy) { // {{{
 	if (s->sx==sx&&s->sy==sy)
 		return 0;
 
-	for (i=0;i<(size_t)s->sx*s->sy;i++) // free old allocated data and set for reusage
-		if (i<(size_t)sx*sy)
-			yascreen_free_empty_cell(s,i);
-		else
-			yascreen_free_cell(s,i);
-	if ((size_t)sx*sy>(size_t)s->sx*s->sy) { // allocate bigger buffer
+	if ((size_t)sx>SIZE_MAX/sizeof(cell)/(size_t)sy) // requested size overflows
+		return -1;
+
+	grow=(size_t)sx*sy>(size_t)s->sx*s->sy;
+	if (grow) { // allocate bigger buffers first, so that a failure leaves the screen intact
 		mem=(cell *)realloc(s->mem,(size_t)sx*sy*sizeof(cell));
 		if (!mem)
 			return -1;
@@ -565,9 +611,15 @@ inline int yascreen_resize(yascreen *s,int sx,int sy) { // {{{
 		if (!scr)
 			return -1;
 		s->scr=scr;
+	}
+	for (i=0;i<(size_t)s->sx*s->sy;i++) // free old allocated data and set for reusage
+		if (i<(size_t)sx*sy)
+			yascreen_free_empty_cell(s,i);
+		else
+			yascreen_free_cell(s,i);
+	if (grow)
 		for (i=(size_t)s->sx*s->sy;i<(size_t)sx*sy;i++) // initialize the rest of the area
 			yascreen_empty_cell(s,i);
-	}
 	s->redraw=1;
 	s->sx=sx;
 	s->sy=sy;
@@ -590,6 +642,7 @@ inline void yascreen_free(yascreen *s) { // {{{
 		yascreen_free_cell(s,i);
 	yascreen_free_dynamic(s);
 	outs(s,ESC"[0m");
+	outs(s,""); // flush the attribute reset before the state is gone
 	free(s);
 } // }}}
 
@@ -644,15 +697,16 @@ static inline int yascreen_update_range(yascreen *s,int y1,int y2) { // {{{
 	if (!s)
 		return -1;
 
-	if (s->redraw) {
-		redraw=1;
-		s->redraw=0;
-		outf(s,ESC"[2J"ESC"[H%s",ra); // clear and position on topleft
-		*ra=0;
-	}
-
 	y1=mymin(s->sy-1,mymax(0,y1));
 	y2=mymin(s->sy,mymax(0,y2));
+
+	if (s->redraw&&y1==0&&y2==s->sy) { // a full redraw is honored only for a full range update; partial updates keep it pending
+		redraw=1;
+		s->redraw=0;
+		if (outf(s,ESC"[2J"ESC"[H%s",ra)<0) // clear and position on topleft
+			ob=-1;
+		*ra=0;
+	}
 
 	for (j=y1;j<y2;j++) {
 		int skip=1,cnt=0;
@@ -670,13 +724,15 @@ static inline int yascreen_update_range(yascreen *s,int y1,int y2) { // {{{
 
 			if (diff||!skip) {
 				if (skip) {
-					outf(s,ESC"[%d;%dH%s",1+j,1+i,ra);
+					if (outf(s,ESC"[%d;%dH%s",1+j,1+i,ra)<0)
+						ob=-1;
 					*ra=0;
 					skip=0;
 				}
 				if (diff) {
 					if (cnt>7) {
-						outf(s,ESC"[%d;%dH%s",1+j,1+i,ra);
+						if (outf(s,ESC"[%d;%dH%s",1+j,1+i,ra)<0)
+							ob=-1;
 						*ra=0;
 						cnt=0;
 					}
@@ -707,7 +763,8 @@ static inline int yascreen_update_range(yascreen *s,int y1,int y2) { // {{{
 		}
 	}
 	if (s->cursor)
-		outf(s,ESC"[%d;%dH",s->cursory+1,s->cursorx+1);
+		if (outf(s,ESC"[%d;%dH",s->cursory+1,s->cursorx+1)<0)
+			ob=-1;
 
 	outs(s,""); // request a flush
 
@@ -719,6 +776,11 @@ inline int yascreen_update(yascreen *s) { // {{{
 		return -1;
 
 	return yascreen_update_range(s,0,s->sy);
+} // }}}
+
+static inline int yascreen_is_wtail(yascreen *s,size_t pos) { // {{{
+	// tail cells of wide characters hold empty content
+	return !(s->mem[pos].style&YAS_STORAGE)&&!s->mem[pos].d[0];
 } // }}}
 
 static inline void yascreen_putcw(yascreen *s,uint32_t attr,const char *str,int width) { // {{{
@@ -734,6 +796,8 @@ static inline void yascreen_putcw(yascreen *s,uint32_t attr,const char *str,int 
 				return;
 		}
 	}
+	if (!str[1]&&((unsigned char)*str<0x20||*str==0x7f)) // other control chars cannot be stored in a cell; use space to keep column tracking consistent
+		str=" ";
 	if (width<0) // non-printable character, skip
 		return;
 	if (s->cursory<0||s->cursory>=s->sy)
@@ -742,6 +806,17 @@ static inline void yascreen_putcw(yascreen *s,uint32_t attr,const char *str,int 
 		int i;
 
 		// normal char
+		if (yascreen_is_wtail(s,s->cursorx+(size_t)s->cursory*s->sx)) { // overwriting the tail of a wide char - blank the cells of the wide char before it
+			int x=s->cursorx-1;
+
+			while (x>0&&yascreen_is_wtail(s,x+(size_t)s->cursory*s->sx))
+				x--;
+			for (;x<s->cursorx;x++) {
+				yascreen_free_memcell(s,x+(size_t)s->cursory*s->sx);
+				strncpy(s->mem[x+(size_t)s->cursory*s->sx].d," ",sizeof s->mem[x+(size_t)s->cursory*s->sx].d);
+				s->mem[x+(size_t)s->cursory*s->sx].style&=~YAS_STORAGE;
+			}
+		}
 		yascreen_free_memcell(s,s->cursorx+(size_t)s->cursory*s->sx);
 		if (strlen(str)<PSIZE) {
 			strncpy(s->mem[s->cursorx+(size_t)s->cursory*s->sx].d,str,sizeof s->mem[s->cursorx+(size_t)s->cursory*s->sx].d);
@@ -765,6 +840,11 @@ static inline void yascreen_putcw(yascreen *s,uint32_t attr,const char *str,int 
 				s->mem[s->cursorx+(size_t)s->cursory*s->sx].style=attr;
 			}
 			s->cursorx++;
+		}
+		for (i=s->cursorx;i>=0&&i<s->sx;i++) { // blank orphaned tail cells of a partially overwritten wide char
+			if (!yascreen_is_wtail(s,i+(size_t)s->cursory*s->sx))
+				break;
+			strncpy(s->mem[i+(size_t)s->cursory*s->sx].d," ",sizeof s->mem[i+(size_t)s->cursory*s->sx].d);
 		}
 		return;
 	}
@@ -837,6 +917,8 @@ inline int yascreen_putsxy(yascreen *s,int x,int y,uint32_t attr,const char *str
 	size_t i;
 
 	if (!s)
+		return EOF;
+	if (!str)
 		return EOF;
 	if (attr&YAS_INTERNAL)
 		return EOF;
@@ -1172,19 +1254,17 @@ inline int yascreen_printxyu(yascreen *s,int x,int y,uint32_t attr,const char *f
 } // }}}
 
 inline int yascreen_write(yascreen *s,const char *str,int len) { // {{{
-	ssize_t (*o)(yascreen *s,const void *buf,size_t len);
-	int rv;
-
 	if (!s)
 		return -1;
 	if (!str)
 		return -1;
+	if (len<0)
+		return -1;
 
-	o=s->outcb?s->outcb:out;
-	rv=o(s,str,len);
+	outse(s,str,(size_t)len);
 	if (s->lineflush)
 		outs(s,""); // request a flush
-	return rv;
+	return len;
 } // }}}
 
 inline int yascreen_puts(yascreen *s,const char *str) { // {{{
@@ -1224,6 +1304,8 @@ inline const char *yascreen_clearln_s(yascreen *s __attribute__((unused))) { // 
 	return ESC"[2K";
 } // }}}
 
+// TODO: this should be removed on the next soname bump
+void yascreen_dump(yascreen *s); // exported for debugging w/o a public header declaration; keep the external definition in c99+ inline semantics
 inline void yascreen_dump(yascreen *s) { // {{{
 	int i,j;
 
@@ -1450,9 +1532,22 @@ inline void yascreen_ckto(yascreen *s) { // {{{
 		s->state=ST_NORM;
 		yascreen_pushch(s,YAS_K_ESC); // return a double escape as a signle one, is that the proper way?
 	}
-	if ((s->state==ST_ESC||s->state==ST_ESC_ESC)&&s->escto&&s->escts+s->escto<now) {
-		s->ansipos=0;
-		s->state=ST_NORM; // ignore slow escape sequences
+	switch (s->state) { // ignore slow escape sequences, so that a stray prefix cannot eat or transmute a later keypress
+		case ST_ESC:
+		case ST_ESC_ESC:
+		case ST_ESC_SQ:
+		case ST_ESC_SQ_D:
+		case ST_ESC_SQ_SQ:
+		case ST_ESC_SQ_M:
+		case ST_ESC_O:
+		case ST_ESC_O_D:
+			if (s->escto&&s->escts+s->escto<now) {
+				s->ansipos=0;
+				s->state=ST_NORM;
+			}
+			break;
+		default:
+			break;
 	}
 } // }}}
 
@@ -1462,8 +1557,21 @@ inline uint64_t yascreen_willto(yascreen *s) { // {{{
 	if (!s)
 		return 0;
 
-	if (s->state!=ST_ESC||s->ansipos!=1||s->ansibuf[0]!=YAS_K_ESC||!s->escto)
+	if (!s->escto)
 		return 0; // no timeout pending
+	switch (s->state) { // all escape sequence states time out
+		case ST_ESC:
+		case ST_ESC_ESC:
+		case ST_ESC_SQ:
+		case ST_ESC_SQ_D:
+		case ST_ESC_SQ_SQ:
+		case ST_ESC_SQ_M:
+		case ST_ESC_O:
+		case ST_ESC_O_D:
+			break;
+		default:
+			return 0; // no timeout pending
+	}
 
 	now=mytime();
 	if (s->escts+s->escto<=now)
@@ -1536,8 +1644,7 @@ static inline int yascreen_feed_telnet(yascreen *s,unsigned char c) { // {{{
 							s->scrx=sx;
 							s->scry=sy;
 							s->havenaws=1;
-							yascreen_pushch(s,YAS_SCREEN_SIZE);
-							return TELNET_NOOP;
+							return TELNET_SIZE_NAWS; // the key value is pushed by the caller, which is compiled per ABI version
 						}
 					}
 					// fallback to the old way of redetecting screen size via ansi
@@ -1557,14 +1664,29 @@ static inline int yascreen_feed_telnet(yascreen *s,unsigned char c) { // {{{
 } // }}}
 
 #if YASCREEN_VERSIONED
-inline void yascreen_feed_193(yascreen *s,unsigned char c);
-inline void yascreen_feed_179(yascreen *s,unsigned char c);
+// non-inline declarations keep these external definitions in c99+ inline semantics; gnu89 is not affected
+void yascreen_feed_193(yascreen *s,unsigned char c);
+void yascreen_feed_179(yascreen *s,unsigned char c);
+int yascreen_getch_to_193(yascreen *s,int timeout);
+int yascreen_getch_to_179(yascreen *s,int timeout);
+int yascreen_peekch_193(yascreen *s);
+int yascreen_peekch_179(yascreen *s);
 #endif
 
+static inline int64_t yascreen_escslice(yascreen *s) { // {{{
+	// time in ms to the next esc sequence timeout event or 0 if esc timeout is disabled
+	uint64_t wrem=yascreen_willto(s);
+
+	if (!s->escto)
+		return 0;
+	return wrem?(int64_t)wrem:s->escto;
+} // }}}
+
 static inline int yascreen_getch_to_gen(yascreen *s,int timeout,int key_none) { // {{{
-	int64_t toms=timeout*1000L,tto;
+	int64_t toms=timeout,tto,esl; // timeout is in milliseconds, same unit as escto
 	struct timeval to,*pto=&to;
 	fd_set r;
+	int sr;
 
 	if (!s)
 		return key_none;
@@ -1580,7 +1702,8 @@ static inline int yascreen_getch_to_gen(yascreen *s,int timeout,int key_none) { 
 		if (timeout<0) // return immediately
 			toms=0;
 
-	tto=s->escto?mymin(s->escto,timeout==0?s->escto:toms):toms;
+	esl=yascreen_escslice(s);
+	tto=esl?mymin(esl,timeout==0?esl:toms):toms;
 	if (toms)
 		toms-=tto; // remaining time to wait is in toms
 	to.tv_sec=tto/1000;
@@ -1601,30 +1724,47 @@ static inline int yascreen_getch_to_gen(yascreen *s,int timeout,int key_none) { 
 			return key_none;
 		FD_ZERO(&r);
 		FD_SET(STDOUT_FILENO,&r);
-		if (-1!=select(STDOUT_FILENO+1,&r,NULL,NULL,pto)) {
+		sr=select(STDOUT_FILENO+1,&r,NULL,NULL,pto);
+		if (sr==-1) {
+			if (errno==EINTR) // signal interruption, retry
+				continue;
+			return key_none; // hard error (e.g. closed fd), do not spin forever
+		}
+		if (sr>0) {
 			unsigned char c; // important to be unsigned, so codes>127 do not expand as negative int values
 
-			if (FD_ISSET(STDOUT_FILENO,&r)&&sizeof c==read(STDOUT_FILENO,&c,sizeof c)) {
-				#if YASCREEN_VERSIONED
-				if (key_none==YAS_K_NONE) // default behaviour, new symbols
-					yascreen_feed_193(s,c);
-				else
-					yascreen_feed_179(s,c);
-				#else
-				yascreen_feed(s,c);
-				#endif
-				continue; // check if feed has yielded a key
+			if (FD_ISSET(STDOUT_FILENO,&r)) {
+				ssize_t rr=read(STDOUT_FILENO,&c,sizeof c);
+
+				if (rr==sizeof c) {
+					#if YASCREEN_VERSIONED
+					if (key_none==YAS_K_NONE) // default behaviour, new symbols
+						yascreen_feed_193(s,c);
+					else
+						yascreen_feed_179(s,c);
+					#else
+					yascreen_feed(s,c);
+					#endif
+					continue; // check if feed has yielded a key
+				}
+				if (rr==0) // eof/hangup, do not spin forever
+					return key_none;
+				if (rr==-1&&errno!=EINTR&&errno!=EAGAIN&&errno!=EWOULDBLOCK) // hard error
+					return key_none;
 			}
+			continue;
 		}
-		if (pto&&(timeout>0||s->escto)&&to.tv_sec==0&&to.tv_usec==0) { // return because of timeout
+		// sr==0 - the current slice expired; do not rely on select updating the timeval, that is not portable
+		if (pto) { // return because of timeout or rearm for the next slice
 			if (timeout<0) // nowait is set
 				return key_none;
 			if (!toms&&timeout>0) // timeout is finished
 				return key_none;
+			esl=yascreen_escslice(s);
 			if (!toms)
-				tto=s->escto;
+				tto=esl?esl:s->escto;
 			else
-				tto=s->escto?mymin(s->escto,toms):toms;
+				tto=esl?mymin(esl,toms):toms;
 			if (toms)
 				toms-=tto; // remaining time to wait is in toms
 			to.tv_sec=tto/1000;
@@ -1707,6 +1847,8 @@ inline void yascreen_clear_mem(yascreen *s,uint32_t attr) { // {{{
 		s->mem[i].style=attr;
 		strncpy(s->mem[i].d," ",sizeof s->mem[i].d);
 	}
+	for (i=0;i<(size_t)s->sy;i++) // mark all lines as touched, so that the next update repaints them
+		s->mem[(size_t)s->sx*i].style|=YAS_TOUCHED;
 } // }}}
 
 inline void yascreen_getsize(yascreen *s,int *sx,int *sy) { // {{{
@@ -1792,8 +1934,8 @@ inline void yascreen_ungetwch(yascreen *s,wchar_t key) { // {{{
 
 		if (rc<=0)
 			return;
-		for (i=rc-1;i>0;i--)
-			yascreen_ungetch(s,ns[i]);
+		for (i=rc-1;i>=0;i--)
+			yascreen_ungetch(s,(unsigned char)ns[i]);
 	}
 } // }}}
 
@@ -1885,6 +2027,10 @@ inline wchar_t yascreen_peekwch(yascreen *s) { // {{{
 #define YAS_K_C_UP 0x13b
 #define YAS_K_C_DOWN 0x13c
 #define YAS_K_C_RIGHT 0x13d
+#define YAS_K_S_LEFT 0x13e
+#define YAS_K_S_UP 0x13f
+#define YAS_K_S_DOWN 0x140
+#define YAS_K_S_RIGHT 0x141
 // ALT+letter
 #define YAS_K_A_BT YAS_K_ALT('`')
 #define YAS_K_A_1 YAS_K_ALT('1')
