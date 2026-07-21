@@ -1,4 +1,4 @@
-// $Id: yascreen.c,v 2.13 2026/07/21 06:43:36 bbonev Exp $
+// $Id: yascreen.c,v 2.14 2026/07/21 08:18:02 bbonev Exp $
 //
 // Copyright © 2015-2026 Boian Bonev (bbonev@ipacct.com) {{{
 //
@@ -47,6 +47,8 @@
 #define KEYSTEP (4096/sizeof(int))
 // default timeout in milliseconds before escape is returned
 #define YAS_DEFAULT_ESCTO 300
+// timeout in milliseconds to eat an LF/NUL combination after CR
+#define YAS_ENTER_TO 300
 
 // check if a given value is a valid simple color value
 #define YAS_ISCOLOR(c) ((c)>=8&&(c)<=15)
@@ -360,7 +362,7 @@ inline void *yascreen_get_hint_p(yascreen *s) { // {{{
 	return s->phint;
 } // }}}
 
-static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 2.13 $\n\n"; // {{{
+static char myver[]="\0Yet another screen library (https://github.com/bbonev/yascreen) $Revision: 2.14 $\n\n"; // {{{
 // }}}
 
 static inline void yascreen_ver_init(void) { // {{{
