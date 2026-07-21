@@ -25,7 +25,7 @@
 -   there is no curses API and ancient terminal compatibility, hence less bloat
 -   there is no autoconf - there is no need to have one
 -   clean API with opaque private data, usable from C/C++
--   easy cross compilation setup (by setting CC, AR, STRIP and RANLIB)
+-   easy cross compilation setup (by setting CC, AR and RANLIB)
 
 Current development is done on Linux, with additional testing on OpenBSD/FreeBSD; other platforms may need minimal fixes.
 
@@ -73,16 +73,16 @@ for (;;) { // main loop
 		yascreen_feed(s,c); // pump state machine with bytestream
 
 	// keys are processed only when available without delay/blocking
-	while ((ch=yascreen_getch_nowait(s))!=-1) {
+	while ((ch=yascreen_getch_nowait(s))!=YAS_K_NONE) {
 		// handle processed keys
 	}
 
 	…
 	// option 2
 
-	// input is handled by yascreen and key or -1 is returned not longer than TIMEOUT ms
+	// input is handled by yascreen and key or YAS_K_NONE is returned not longer than TIMEOUT ms
 	// note: if screen update is based on this, keypresses will force it
-	while ((ch=yascreen_getch_to(s,TIMEOUT))!=-1) {
+	while ((ch=yascreen_getch_to(s,TIMEOUT))!=YAS_K_NONE) {
 		// handle processed keys
 	}
 
@@ -90,7 +90,7 @@ for (;;) { // main loop
 	// option 3
 
 	// input is handled by yascreen and the following call will block until a key is pressed
-	if ((ch=yascreen_getch(s))!=-1) {
+	if ((ch=yascreen_getch(s))!=YAS_K_NONE) {
 		// handle processed key
 	}
 }
@@ -115,7 +115,7 @@ for (;;) { // main loop
 	yascreen_feed(s,c); // feed input from the socket to yascreen
 
 	// keys are processed only when available without delay/blocking
-	while ((ch=yascreen_getch_nowait(s))!=-1) {
+	while ((ch=yascreen_getch_nowait(s))!=YAS_K_NONE) {
 		// handle processed keys
 
 		// screen size change is reported as a special keypress code:
@@ -183,7 +183,7 @@ There is a macro `YAS_IS_CC(code)` that will evaluate to non-zero for the specia
 |------------------|--------:|-----------------------|
 |`YAS_K_NONE`      | 0xf0000 | no key is available; in time limited mode means that the time limit expired |
 |`YAS_SCREEN_SIZE` | 0xf0701 | notification for screen size change (may come because of telnet or ANSI sequence) |
-|`YAS_TELNET_SIZE` | 0xf0702 | notification for screen size change; duplicates the above, may be used to differentiate how screen size change event was generated |
+|`YAS_TELNET_SIZE` | 0xf0702 | notification for a possible screen size change, reported via telnet without valid size data; the size should be redetected (e.g. with `yascreen_reqsize`) |
 
 -   Normal keys
 
@@ -207,7 +207,7 @@ There is a macro `YAS_IS_CC(code)` that will evaluate to non-zero for the specia
 |`YAS_K_RET`       | 0x0d  | Enter, Return, Ctrl-M; see above |
 |`YAS_K_C_N`       | 0x0e  | Ctrl-N |
 |`YAS_K_C_O`       | 0x0f  | Ctrl-O |
-|`YAS_K_C_P`       | 0x10  | Ctrl-O |
+|`YAS_K_C_P`       | 0x10  | Ctrl-P |
 |`YAS_K_C_Q`       | 0x11  | Ctrl-Q |
 |`YAS_K_C_R`       | 0x12  | Ctrl-R |
 |`YAS_K_C_S`       | 0x13  | Ctrl-S |
@@ -869,7 +869,7 @@ inline void yascreen_feed(yascreen *s,unsigned char c);
 
 feed key sequence state machine with byte stream
 
-this is useful to implement external event loop and read key codes by `yascreen_getch_nowait` until it returns -1
+this is useful to implement external event loop and read key codes by `yascreen_getch_nowait` until it returns `YAS_K_NONE`
 
 ### yascreen\_peekch
 ```c
