@@ -1,4 +1,4 @@
-# YASCREEN 3 "March 15, 2026" yascreen "User-Manual"
+# YASCREEN 3 "July 29, 2026" yascreen "User-Manual"
 
 # NAME
   yascreen - Yet Another Screen Library (curses replacement for daemons and embedded apps)
@@ -812,6 +812,19 @@ should be called regularly enough so that the above specified timeout is not ext
 if not called often enough then single ESC will be yielded after longer timeout
 
 if not called at all then single ESC will be yielded with next key press
+
+### yascreen\_willto
+```c
+inline uint64_t yascreen_willto(yascreen *s);
+```
+
+single ESC key and a timeout afterwards is quite the rare event
+
+help the application to optimize its event loop by not constantly polling yascreen\_ckto
+
+yascreen\_willto tells if there is a pending timeout and when
+
+returns 0 if there is no pending timeout or the remaining time in milliseconds
 
 ### yascreen\_getch\_to
 ```c
